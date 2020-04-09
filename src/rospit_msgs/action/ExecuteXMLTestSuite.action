@@ -1,0 +1,9 @@
+string path
+---
+bool success
+rospit_msgs/TestSuiteReport report
+string error
+---
+string state
+string active_test_suite_name
+string active_test_case_name

@@ -1,0 +1,2 @@
+string test_suite_name
+rospit_msgs/TestCaseReport[] test_case_reports
