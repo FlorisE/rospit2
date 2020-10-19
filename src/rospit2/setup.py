@@ -1,22 +1,36 @@
-from setuptools import setup
+import setuptools
 
 package_name = 'rospit2'
 
-setup(
-    name=package_name,
-    version='0.0.0',
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
+setuptools.setup(
+    name=package_name, # Replace with your own username
+    version="2.0.1",
+    author="Floris Erich",
+    author_email="floris.erich@aist.go.jp",
+    maintainer="Floris Erich",
+    maintainer_email="floris.erich@aist.go.jp",
+    description="Library for Physical Integration Testing",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/FlorisE/rospit2",
     packages=[package_name],
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     ],
+    python_requires='>=3.6',
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='floris',
-    maintainer_email='floris.erich@aist.go.jp',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [

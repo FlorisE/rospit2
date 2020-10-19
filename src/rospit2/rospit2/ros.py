@@ -22,14 +22,13 @@ from rospit2.numeric import LowerLimitCondition, LowerLimitEvaluator, \
                             NumericMeasurement
 from rospit_msgs.msg import ConditionEvaluationPairStamped, \
                             TestSuiteReport as TestSuiteReportMessage
-from rospit_msgs.srv import ExecuteXMLTestSuite, GetAllReports
 
 import rclpy
 from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.action import ActionServer
 from ros2topic.api import qos_profile_from_short_keys
-from ros2topic.api import import_message_type
+from rosidl_runtime_py.utilities import get_message
 from rosidl_runtime_py import set_message_fields
 from ros2topic.verb.pub import publisher as topic_publisher
 from ros2cli.node.direct import DirectNode
@@ -140,7 +139,7 @@ class ROSDeclarativeTestCase(DeclarativeTestCase):
             if not evaluation.nominal:
                 self.invariant_failed = True
 
-        msg_module = import_message_type(invariant.evaluator.topic, invariant.evaluator.topic_type)
+        msg_module = get_message(invariant.evaluator.topic_type)
         return self.subscription_manager.get_subscriber(
             invariant.evaluator.topic, msg_module, subscribe)
 
@@ -274,7 +273,7 @@ class MessageEvaluatorBase(Evaluator):
         self.topic_type = topic_type
         self.field = field
         self.data = None
-        msg_type = import_message_type(topic, topic_type)
+        msg_type = get_message(topic_type)
         self.subscriber = self.node.create_subscription(msg_type, topic, self.callback, 10)
 
     def callback(self, data):
@@ -439,7 +438,7 @@ class Publish(Step):
             qos_profile_from_short_keys(self.qos_profile_str,
                                         reliability=self.qos_reliability_str,
                                         durability=self.qos_durability_str)
-        msg_module = import_message_type(self.topic, self.msg_type)
+        msg_module = get_message(self.msg_type)
         pub = self.node.create_publisher(msg_module, self.topic, qos_profile)
 
         msg = msg_module()
