@@ -1,6 +1,6 @@
 """ Binary conditions """
 
-from collections.abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod
 
 from .framework import Evaluator, Evaluation, Measurement, Condition, Sensor
 

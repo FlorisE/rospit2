@@ -1,6 +1,6 @@
 """ Numeric evaluation, e.g. a function with limits """
 
-from collections.abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 
 from .framework import Evaluator, Evaluation, CompositeEvaluation, Sensor, \

@@ -1,4 +1,4 @@
-from collections.abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod
 from .framework import TestCase, InvariantFailedException
 
 
