@@ -1,8 +1,8 @@
 """ Binary conditions """
 
-from abc import ABCMeta, abstractmethod
+from collections.abc import ABCMeta, abstractmethod
 
-from rospit2.framework import Evaluator, Evaluation, Measurement, Condition, Sensor
+from .framework import Evaluator, Evaluation, Measurement, Condition, Sensor
 
 
 def binary_measure(evaluator):

@@ -2,7 +2,7 @@
 Script that launches useful nodes and services for executing Physical Integration Tests
 """
 import rclpy
-from rospit2.ros import ROSTestRunnerNode
+from .ros import ROSTestRunnerNode
 from rclpy.executors import MultiThreadedExecutor
 
 

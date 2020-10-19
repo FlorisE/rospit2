@@ -1,8 +1,8 @@
 """ Evaluators for whether a value is in a specific category """
 
-from abc import ABCMeta, abstractmethod
+from collections.abc import ABCMeta, abstractmethod
 
-from rospit2.framework import Evaluator, Condition, Sensor, Evaluation, Measurement
+from .framework import Evaluator, Condition, Sensor, Evaluation, Measurement
 
 
 class InCategoryConditionEvaluator(Evaluator):

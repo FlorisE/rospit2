@@ -3,9 +3,9 @@ import yaml
 
 import os
 
-from rospit2.framework import TestSuite, ConditionEvaluatorPair
-from rospit2.binary import BinaryCondition, BinaryConditionEvaluator, StaticBooleanEvaluator
-from rospit2.numeric import Limit, LowerLimitCondition, LowerLimitEvaluator, \
+from .framework import TestSuite, ConditionEvaluatorPair
+from .binary import BinaryCondition, BinaryConditionEvaluator, StaticBooleanEvaluator
+from .numeric import Limit, LowerLimitCondition, LowerLimitEvaluator, \
                             UpperLimitCondition, UpperLimitEvaluator, \
                             BothLimitsCondition, BothLimitsEvaluator, \
                             GreaterThanCondition, GreaterThanEvaluator, \
@@ -14,8 +14,8 @@ from rospit2.numeric import Limit, LowerLimitCondition, LowerLimitEvaluator, \
                             NotEqualToCondition, NotEqualToEvaluator, \
                             LessThanCondition, LessThanEvaluator, \
                             LessThanOrEqualToCondition, LessThanOrEqualToEvaluator
-from rospit2.declarative import DummyStep
-from rospit2.ros import ROSDeclarativeTestCase, ServiceCall, Publish, MessageReceivedEvaluator, \
+from .declarative import DummyStep
+from .ros import ROSDeclarativeTestCase, ServiceCall, Publish, MessageReceivedEvaluator, \
                         Sleep, MessageEvaluator, ExecutionReturnedEvaluator, \
                         NumericMessageEvaluator, ROSTestSuite, MessageValue
 

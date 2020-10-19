@@ -5,12 +5,12 @@ import time
 import importlib
 import time
 
-import rospit2.test_runner
-from rospit2.framework import Evaluator, Evaluation, TestSuite, \
+from .test_runner import map_test_suite_report
+from .framework import Evaluator, Evaluation, TestSuite, \
                              get_logger, Measurement, TestCase
-from rospit2.declarative import Step, DeclarativeTestCase
-from rospit2.binary import BinaryMeasurement
-from rospit2.numeric import LowerLimitCondition, LowerLimitEvaluator, \
+from .declarative import Step, DeclarativeTestCase
+from .binary import BinaryMeasurement
+from .numeric import LowerLimitCondition, LowerLimitEvaluator, \
                             UpperLimitCondition, UpperLimitEvaluator, \
                             BothLimitsCondition, BothLimitsEvaluator, \
                             GreaterThanCondition, GreaterThanEvaluator, \
@@ -217,7 +217,7 @@ class ROSTestRunnerNode(Node):
             return result
 
         report = self.last_test_suite.run(self.get_logger())
-        mapped_report = rospit2.test_runner.map_test_suite_report(report)
+        mapped_report = map_test_suite_report(report)
         goal_handle.succeed()
         result.success = True
         result.report = mapped_report

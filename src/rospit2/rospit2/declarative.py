@@ -1,5 +1,5 @@
-from abc import ABCMeta, abstractmethod
-from rospit2.framework import TestCase, InvariantFailedException
+from collections.abc import ABCMeta, abstractmethod
+from .framework import TestCase, InvariantFailedException
 
 
 class DeclarativeTestCase(TestCase):

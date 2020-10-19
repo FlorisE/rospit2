@@ -1,6 +1,6 @@
 """ A framework for running automated tests using external instrumentation """
 
-from abc import ABCMeta, abstractmethod
+from collections.abc import ABCMeta, abstractmethod
 from time import sleep, strftime
 from collections import defaultdict
 import logging

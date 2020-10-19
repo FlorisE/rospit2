@@ -1,9 +1,9 @@
 """ Numeric evaluation, e.g. a function with limits """
 
-from abc import ABCMeta, abstractmethod
+from collections.abc import ABCMeta, abstractmethod
 from collections import namedtuple
 
-from rospit2.framework import Evaluator, Evaluation, CompositeEvaluation, Sensor, \
+from .framework import Evaluator, Evaluation, CompositeEvaluation, Sensor, \
                               Measurement, Condition, get_active_test_suite, get_active_test_case
 
 
