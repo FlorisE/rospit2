@@ -1,7 +1,7 @@
 # Copyright (c) 2020 AIST.
 # National Institute of Advanced Industrial Science and Technology.
 #
-# Licensed under the MIT License.
+# License: MIT.
 
 """A framework for running automated tests using external instrumentation."""
 

@@ -1,7 +1,7 @@
 # Copyright (c) 2020 AIST.
 # National Institute of Advanced Industrial Science and Technology.
 #
-# Licensed under the MIT License.
+# License: MIT.
 
 """Unused script to run tests."""
 
