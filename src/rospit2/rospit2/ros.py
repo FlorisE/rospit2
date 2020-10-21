@@ -1,140 +1,163 @@
-"""ROS specific implementation of the testing framework"""
-import logging
-import sys
-import time
+# Copyright (c) 2020 AIST.
+# National Institute of Advanced Industrial Science and Technology.
+#
+# Licensed under the MIT License.
+
+"""ROS specific implementation of the testing framework."""
+
+
 import importlib
 import time
 
-from .test_runner import map_test_suite_report
-from .framework import Evaluator, Evaluation, TestSuite, \
-                             get_logger, Measurement, TestCase
-from .declarative import Step, DeclarativeTestCase
-from .binary import BinaryMeasurement
-from .numeric import LowerLimitCondition, LowerLimitEvaluator, \
-                            UpperLimitCondition, UpperLimitEvaluator, \
-                            BothLimitsCondition, BothLimitsEvaluator, \
-                            GreaterThanCondition, GreaterThanEvaluator, \
-                            GreaterThanOrEqualToCondition, GreaterThanOrEqualToEvaluator, \
-                            EqualToCondition, EqualToEvaluator, \
-                            NotEqualToCondition, NotEqualToEvaluator, \
-                            LessThanCondition, LessThanEvaluator, \
-                            LessThanOrEqualToCondition, LessThanOrEqualToEvaluator, \
-                            NumericMeasurement
-from rospit_msgs.msg import ConditionEvaluationPairStamped, \
-                            TestSuiteReport as TestSuiteReportMessage
-
 import rclpy
+from rclpy.action import ActionServer
 from rclpy.duration import Duration
 from rclpy.node import Node
-from rclpy.action import ActionServer
+
 from ros2topic.api import qos_profile_from_short_keys
-from rosidl_runtime_py.utilities import get_message
+
 from rosidl_runtime_py import set_message_fields
-from ros2topic.verb.pub import publisher as topic_publisher
-from ros2cli.node.direct import DirectNode
+from rosidl_runtime_py.utilities import get_message
 
-import std_msgs
-from std_msgs.msg import String, Bool
 from rospit_msgs.action import ExecuteXMLTestSuite
+from rospit_msgs.msg import ConditionEvaluationPairStamped
+
+from .binary import BinaryMeasurement
+from .declarative import DeclarativeTestCase, Step
+from .framework import Evaluation, Evaluator, Measurement, \
+                       TestSuite, get_logger
+from .numeric import BothLimitsCondition, BothLimitsEvaluator, \
+                     EqualToCondition, EqualToEvaluator, \
+                     GreaterThanCondition, GreaterThanEvaluator, \
+                     GreaterThanOrEqualToCondition, \
+                     GreaterThanOrEqualToEvaluator, \
+                     LessThanCondition, LessThanEvaluator, \
+                     LessThanOrEqualToCondition, \
+                     LessThanOrEqualToEvaluator, \
+                     LowerLimitCondition, LowerLimitEvaluator, \
+                     NotEqualToCondition, NotEqualToEvaluator, \
+                     NumericMeasurement, \
+                     UpperLimitCondition, UpperLimitEvaluator
+from .test_runner import map_test_suite_report
 
 
-INVARIANT_EVALUATIONS_TOPIC = "/invariant_evaluations"
+INVARIANT_EVALUATIONS_TOPIC = '/invariant_evaluations'
 
 
 class SubscriptionManager(object):
+    """Manages subscriptions."""
+
     def __init__(self, node, subscribers):
+        """Initialize."""
         self.node = node
         self.subscribers = subscribers
-        self.initialized_subscribers = dict()
+        self.initialized_subscribers = {}
 
     def get_subscriber(self, topic, msg_type, func):
-        """Gets a ROS subscriber for the topic and type"""
+        """Get a ROS subscriber for the topic and type."""
         return self.node.create_subscription(msg_type, topic, func, 10)
 
     def delete_subscriber(self, subscription):
+        """Delete a subscriber."""
         self.node.destroy_subscription(subscription)
 
     def delete_subscribers(self):
+        """Delete the subscribers."""
         for topic, subscription in self.initialized_subscribers.items():
             self.delete_subscriber(subscription)
 
     def initialize_subscribers(self):
+        """Initialize the subscribers."""
         for topic, msg_type in self.subscribers.msg_value_subscribers:
             if topic not in self.initialized_subscribers:
                 self.initialized_subscribers[topic] = self.get_subscriber(
                     topic, msg_type, self.store_message, topic)
             if topic not in self.node.msg_value_subscribers:
-                self.node.msg_value_subscribers[topic] = self.initialized_subscribers[topic]
+                self.node.msg_value_subscribers[topic] = \
+                        self.initialized_subscribers[topic]
         for topic, msg_type in self.subscribers.msg_received_subscribers:
             if topic not in self.initialized_subscribers:
                 self.initialized_subscribers[topic] = self.get_subscriber(
                     topic, msg_type, self.store_message, topic)
             if topic not in self.node.msg_received_subscribers:
-                self.node.msg_received_subscribers[topic] = self.initialized_subscribers[topic]
+                self.node.msg_received_subscribers[topic] = \
+                        self.initialized_subscribers[topic]
 
 
 class ROSTestSuite(TestSuite):
-    """A ROS specific test suite"""
-    def __init__(self, node, subscribers, name=""):
+    """A ROS specific test suite."""
+
+    def __init__(self, node, subscribers, name=''):
+        """Initialize."""
         TestSuite.__init__(self, name)
         self.node = node
-        self.messages = dict()
+        self.messages = {}
         self.message_received_on = set()
-        self.msg_value_subscribers = dict()
-        self.msg_received_subscribers = dict()
+        self.msg_value_subscribers = {}
+        self.msg_received_subscribers = {}
         self.subscription_manager = SubscriptionManager(self.node, subscribers)
 
     def run(self, logger):
-        """Runs the test suite. Wraps the super method to add subscription management"""
+        """Run the test suite.
+
+        Wraps the super method to add subscription management.
+        """
         self.subscription_manager.initialize_subscribers()
         report = super().run(logger)
         self.subscription_manager.delete_subscribers()
         return report
 
     def store_message(self, data, topic):
-        """Stores the actual message"""
+        """Store the actual message."""
         self.messages[topic] = data
 
     def store_msg_received_on(self, data, topic):
-        """Stores on which topics messages have been received"""
+        """Store on which topics messages have been received."""
         self.message_received_on.add(topic)
 
     def report_executing(self, test_case):
-        """ Reports which test suite is running to the action server """
+        """Report which test suite is running to the action server."""
         self.node.report_executing(self.name, test_case)
 
 
 class ROSDeclarativeTestCase(DeclarativeTestCase):
-    def __init__(self, test_suite, run_steps=None, set_up_steps=None, tear_down_steps=None,
-                 name="", preconditions=None, invariants=None,
-                 postconditions=None, wait_for_preconditions=False,
+    """A declarative test case for ROS."""
+
+    def __init__(self, test_suite, run_steps=None, set_up_steps=None,
+                 tear_down_steps=None, name='', preconditions=None,
+                 invariants=None, postconditions=None,
+                 wait_for_preconditions=False,
                  sleep_rate=0.1, depends_on=None):
-        super().__init__(run_steps, set_up_steps, tear_down_steps, name, preconditions,
-                         invariants, postconditions, wait_for_preconditions, sleep_rate, depends_on)
+        """Initialize."""
+        super().__init__(run_steps, set_up_steps, tear_down_steps, name,
+                         preconditions, invariants, postconditions,
+                         wait_for_preconditions, sleep_rate, depends_on)
         self.test_suite = test_suite
         self.subscribers = []
         self.subscription_manager = test_suite.subscription_manager
 
     def run(self):
-        """ Runs the ROS declarative test case. Reports to the action server """
+        """Run the ROS declarative test case. Reports to the action server."""
         self.test_suite.report_executing(self.name)
         super().run()
 
     def start_invariant_monitoring(self):
-        """Starts monitoring the invariants"""
+        """Start monitoring the invariants."""
         for invariant in self.invariants:
             self.subscribers.append(self.get_invariant_subscriber(invariant))
 
     def stop_invariant_monitoring(self):
-        """Stops monitoring the invariants"""
+        """Stop monitoring the invariants."""
         for subscriber in self.subscribers:
             self.subscription_manager.delete_subscriber(subscriber)
 
     def get_invariant_subscriber(self, invariant):
-        """Creates a subscriber for monitoring the invariant"""
+        """Create a subscriber for monitoring the invariant."""
         def subscribe(data):
-            """Processes data received on the invariant"""
-            evaluation = invariant.evaluator.evaluate(invariant.condition, get_field_or_message(data, invariant.evaluator.field))
+            """Process data received on the invariant."""
+            evaluation = invariant.evaluator.evaluate(
+                invariant.condition,
+                get_field_or_message(data, invariant.evaluator.field))
             self.invariants_evaluations[invariant].append(evaluation)
             if not evaluation.nominal:
                 self.invariant_failed = True
@@ -145,40 +168,43 @@ class ROSDeclarativeTestCase(DeclarativeTestCase):
 
 
 class ROSInvariant(object):
-    """Some condition that should hold throughout execution of a test case"""
+    """Some condition that should hold throughout execution of a test case."""
+
     def __init__(self, condition, evaluator, topic, msg_type):
+        """Initialize."""
         self.condition = condition
         self.evaluator = evaluator
         self.topic = topic
         self.msg_type = msg_type
 
     def call_evaluator_with_data(self, data):
-        """Convenience method for calling the evaluator with data supplied"""
+        """Call the evaluator with supplied data."""
         return self.evaluator.call_evaluator_with_data(data)
 
     def evaluate_measurement(self, measurement):
-        """Convenience method for evaluating the measurement"""
+        """Evaluate the measurement."""
         return self.evaluator.evaluate(self.condition, measurement)
 
     def evaluate(self, data):
-        """Convenience method for evaluating the invariant"""
+        """Evaluate the invariant."""
         measurement = self.call_evaluator_with_data(data)
         return self.evaluate_measurement(measurement)
 
 
 class ROSTestRunnerNode(Node):
-    """
-    A node that runs tests and publishes their results
-    """
+    """A node that runs tests and publishes their results."""
+
     def __init__(self, executor):
-        super().__init__("test_runner")
+        """Initialize."""
+        super().__init__('test_runner')
         self.node_executor = executor
         self.invariant_evaluations = []
 
         self.invariant_evaluation_subscription = self.create_subscription(
             ConditionEvaluationPairStamped, INVARIANT_EVALUATIONS_TOPIC,
             self.add_invariant_evaluation, 10)
-        self.invariant_evaluation_subscription # prevent unused variable warning
+        # prevent unused variable warning
+        self.invariant_evaluation_subscription
         self.spinning = False
         self.last_test_suite = None
         self._action_server = ActionServer(
@@ -189,31 +215,32 @@ class ROSTestRunnerNode(Node):
         self.active_goal_handle = None
 
     def execute_xml_test_suite(self, goal_handle):
-        """
-        Execute a test suite specified in an XML file.
+        """Execute a test suite specified in an XML file.
+
         Request should be a string specifying the path to the test to run.
         """
         self.active_goal_handle = goal_handle
-        self.get_logger().info("Executing test suite")
+        self.get_logger().info('Executing test suite')
         result = ExecuteXMLTestSuite.Result()
 
         from rospit2.rospit_xml import get_test_suite_from_xml_path
         if not goal_handle.request.path:
             result.success = False
-            result.error = "No path to test description specified"
+            result.error = 'No path to test description specified'
             return result
-          
-        parser = get_test_suite_from_xml_path(self, goal_handle.request.path, True)
+
+        parser = get_test_suite_from_xml_path(
+            self, goal_handle.request.path, True)
         if not parser:
             result.success = False
-            result.error = "Failed to parse the file specified at path"
+            result.error = 'Failed to parse the file specified at path'
             return result
 
         self.last_test_suite = parser.parse()
 
         if self.last_test_suite is None:
             result.success = False
-            result.error = "No test suite has been loaded, please call execute_xml_test_suite"
+            result.error = 'No test suite loaded, call execute_xml_test_suite'
             return result
 
         report = self.last_test_suite.run(self.get_logger())
@@ -224,41 +251,46 @@ class ROSTestRunnerNode(Node):
         return result
 
     def add_invariant_evaluation(self, evaluation):
-        """Stores the invariant evaluation"""
+        """Store the invariant evaluation."""
         self.invariant_evaluations.append(evaluation)
 
     def spin(self):
-        """ Spins the node """
+        """Spin the node."""
         self.spinning = True
-        self.get_logger().info("Test runner ready")
+        self.get_logger().info('Test runner ready')
         rclpy.spin(self, self.node_executor)
 
     def report_executing(self, test_suite, test_case):
-        """ Reports to the action server which test suite and test case are being executed """
+        """Report to action server which suite and case are being executed."""
         if not self.active_goal_handle:
-            self.get_logger().error("not currently executing a goal")
+            self.get_logger().error('not currently executing a goal')
         feedback_msg = ExecuteXMLTestSuite.Feedback()
-        feedback_msg.state = "Executing"
+        feedback_msg.state = 'Executing'
         feedback_msg.active_test_suite_name = test_suite
         feedback_msg.active_test_case_name = test_case
         self.active_goal_handle.publish_feedback(feedback_msg)
 
 
 class MessageValue(object):
+    """Message value."""
+
     def __init__(self, topic, field, test_suite):
+        """Initialize."""
         self.topic = topic
         self.field = field
         self.test_suite = test_suite
 
     def get_value(self):
+        """Get the value of the message."""
         message = self.test_suite.messages[self.topic]
         return get_field_or_message(message, self.field)
 
 
 def get_field_or_message(message, field_str):
+    """Get the field value or entire message if it is already a leaf."""
     data = message
     if field_str is not None:
-        fields = field_str.split("/")
+        fields = field_str.split('/')
         while len(fields) > 0:
             field = fields.pop(0)
             data = getattr(data, field)
@@ -266,7 +298,10 @@ def get_field_or_message(message, field_str):
 
 
 class MessageEvaluatorBase(Evaluator):
+    """Base class for message evaluation."""
+
     def __init__(self, node, topic, topic_type, field=None):
+        """Initialize the message evaluator."""
         self.received = False
         self.node = node
         self.topic = topic
@@ -274,31 +309,39 @@ class MessageEvaluatorBase(Evaluator):
         self.field = field
         self.data = None
         msg_type = get_message(topic_type)
-        self.subscriber = self.node.create_subscription(msg_type, topic, self.callback, 10)
+        self.subscriber = self.node.create_subscription(
+            msg_type, topic, self.callback, 10)
 
     def callback(self, data):
+        """Fill data and mark as received."""
         self.data = get_field_or_message(data, self.field)
         self.received = True
 
 
 class MessageReceivedEvaluator(MessageEvaluatorBase):
-    """
-    Evaluates whether a message has been received on the topic
-    """
+    """Evaluate whether a message has been received on the topic."""
+
     def __init__(self, node, topic, topic_type, field=None):
+        """Initialize."""
         MessageEvaluatorBase.__init__(self, node, topic, topic_type, field)
 
     def evaluate_internal(self, condition, measurement=None):
+        """Internally evaluate the message."""
         if measurement is None:
             measurement = BinaryMeasurement(self.received)
-        return Evaluation(measurement, condition, self.received == condition.value)
+        return Evaluation(
+            measurement, condition, self.received == condition.value)
 
 
 class MessageEvaluator(MessageEvaluatorBase):
+    """Evaluate the content of the message."""
+
     def __init__(self, node, topic, topic_type, field=None):
+        """Initialize."""
         MessageEvaluatorBase.__init__(self, node, topic, topic_type, field)
 
     def evaluate_internal(self, condition, measurement=None):
+        """Internally evaluate the message."""
         if measurement is None:
             while self.data is None:
                 time.sleep(1)
@@ -307,33 +350,41 @@ class MessageEvaluator(MessageEvaluatorBase):
 
 
 class ExecutionReturnedEvaluator(Evaluator):
+    """Evaluator for whether execution has returned."""
+
     def __init__(self, test_case, field=None):
+        """Initialize."""
         self.test_case = test_case
         self.field = field
 
     def evaluate_internal(self, condition, measurement=None):
+        """Internally evaluate the execution."""
         if measurement is None:
             current = self.test_case.execution_result
             if self.field is not None:
-                fields = self.field.split("/")
+                fields = self.field.split('/')
                 for field in fields:
                     current = getattr(current, field)
             measurement = Measurement(current)
 
-        evaluation = Evaluation(measurement, condition, measurement.value == condition.value)
+        evaluation = Evaluation(
+            measurement, condition, measurement.value == condition.value)
         return evaluation
 
 
 class NumericMessageEvaluator(MessageEvaluatorBase):
+    """Evaluator for numeric messages."""
+
     def __init__(self, node, topic, topic_type, field=None):
+        """Initialize."""
         MessageEvaluatorBase.__init__(self, node, topic, topic_type, field)
 
     def evaluate_internal(self, condition, measurement=None):
+        """Internally evaluate the numeric message."""
         if measurement is None:
             while self.data is None:
                 time.sleep(1)
             measurement = NumericMeasurement(self.data)
-        # BothLimits should be above LowerLimit and UpperLimit as it is a child class
         type_map = {
             BothLimitsCondition: BothLimitsEvaluator,
             UpperLimitCondition: UpperLimitEvaluator,
@@ -352,42 +403,41 @@ class NumericMessageEvaluator(MessageEvaluatorBase):
                 evaluator_type = value
                 break
         if evaluator_type is None:
-            raise ValueError("Condition is of unknown type")
+            raise ValueError('Condition is of unknown type')
 
-        evaluation = evaluator_type(lambda: self.data).evaluate(condition, measurement)
+        evaluation = evaluator_type(lambda: self.data).evaluate(
+            condition, measurement)
 
-        get_logger().info("Condition {}, measurement {}, {}".format(
-            condition, measurement, "nominal" if evaluation.nominal else "not nominal"))
+        get_logger().info('Condition {}, measurement {}, {}'.format(
+            condition, measurement,
+            'nominal' if evaluation.nominal else 'not nominal'))
 
         return evaluation
 
 
 def call_service(node, service_name, service_type, service_args):
-    """
-    Call a service. Mostly extracted from rosservice.
-    """
+    """Call a service. Mostly extracted from rosservice."""
     srv_module = _get_module(service_type)
-  
+
     client = node.create_client(srv_module, service_name)
-  
+
     request = srv_module.Request()
-  
+
     try:
         set_message_fields(request, service_args)
     except Exception as e:
         raise e
         return 'Failed to populate field: {0}'.format(e)
-  
+
     if not client.service_is_ready():
         client.wait_for_service()
-  
     client.call(request)
 
 
 def _fill_parameters(parameters):
     def _process(item):
         if isinstance(item, dict):
-            return_value = dict()
+            return_value = {}
             for key, value in item.items():
                 return_value[key] = _process(value)
             return return_value
@@ -398,7 +448,9 @@ def _fill_parameters(parameters):
     val = _process(parameters)
     return val
 
+
 def _get_module(service_type):
+    """Get the module for service_type."""
     try:
         parts = service_type.split('/')
         if len(parts) == 2:
@@ -415,12 +467,14 @@ def _get_module(service_type):
 
 
 class Publish(Step):
-    """
-    Publishes a message to a topic
-    """
-    def __init__(self, node, topic, msg_type, duration, rate, parameters, 
-            qos_profile_str='system_default', qos_reliability_str='system_default',
-            qos_durability_str='system_default', save_result=False):
+    """Publish a message to a topic."""
+
+    def __init__(self, node, topic, msg_type, duration, rate, parameters,
+                 qos_profile_str='system_default',
+                 qos_reliability_str='system_default',
+                 qos_durability_str='system_default',
+                 save_result=False):
+        """Publish a message to a topic."""
         Step.__init__(self, save_result)
         self.node = node
         self.topic = topic
@@ -433,6 +487,7 @@ class Publish(Step):
         self.qos_durability_str = qos_durability_str
 
     def execute(self):
+        """Publish a message to a topic."""
         once = self.duration == 1 and self.rate == 1
         qos_profile = \
             qos_profile_from_short_keys(self.qos_profile_str,
@@ -455,7 +510,8 @@ class Publish(Step):
                 if clock.now() > end_time:
                     break
                 pub.publish(msg)
-                sched_time = sched_time + Duration(nanoseconds=(1./self.rate) * 10**9)
+                sched_time = sched_time + Duration(
+                    nanoseconds=(1./self.rate) * 10**9)
         else:
             pub.publish(msg)
 
@@ -465,37 +521,41 @@ class Publish(Step):
 
 
 class ServiceCall(Step):
-    """
-    A call to a ROS Service
-    Based on https://github.com/ros2/ros2cli/blob/master/ros2service/ros2service/verb/call.py
-    """
-    def __init__(self, node, service, service_type, parameters=None, save_result=False):
+    """Call a ROS Service."""
+
+    def __init__(self, node, service, service_type,
+                 parameters=None, save_result=False):
+        """Call a ROS Service."""
         Step.__init__(self, save_result)
         if parameters is None:
-            parameters = dict()
+            parameters = {}
         self.node = node
         self.service = service
         self.service_type = service_type
         self.parameters = parameters
 
     def execute(self):
-        return call_service(self.node, self.service, self.service_type, _fill_parameters(self.parameters))
+        """Call the service."""
+        return call_service(
+            self.node, self.service, self.service_type,
+            _fill_parameters(self.parameters))
 
 
 class Sleep(Step):
-    """
-    A call to ROS sleep
-    """
-    def __init__(self, time, unit="second"):
+    """Sleep for a specified amount of time."""
+
+    def __init__(self, time, unit='second'):
+        """Initialize."""
         Step.__init__(self, False)
-        if unit == "second" or unit == "seconds":
+        if unit == 'second' or unit == 'seconds':
             self.time = time
-        elif unit == "minute" or unit == "minutes":
+        elif unit == 'minute' or unit == 'minutes':
             self.time = time * 60
-        elif unit == "hour" or unit == "hours":
+        elif unit == 'hour' or unit == 'hours':
             self.time = time * 60 * 60
         else:
-            raise ValueError("Supported units are second, minute and hour")
+            raise ValueError('Supported units are second, minute and hour')
 
     def execute(self):
+        """Sleep for the specified time."""
         time.sleep(float(self.time))

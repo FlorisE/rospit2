@@ -1,20 +1,28 @@
-"""
-Script that launches useful nodes and services for executing Physical Integration Tests
-"""
+# Copyright (c) 2020 AIST.
+# National Institute of Advanced Industrial Science and Technology.
+#
+# Licensed under the MIT License.
+
+"""Script that launches PIT nodes and services."""
+
+
 import rclpy
-from .ros import ROSTestRunnerNode
 from rclpy.executors import MultiThreadedExecutor
+
+from .ros import ROSTestRunnerNode
 
 
 def main(args=None):
-  rclpy.init(args=args)
-  executor = MultiThreadedExecutor()
-  node = ROSTestRunnerNode(executor)
-  executor.add_node(node)
-  node.spin()
+    """Run the test script."""
+    rclpy.init(args=args)
+    executor = MultiThreadedExecutor()
+    node = ROSTestRunnerNode(executor)
+    executor.add_node(node)
+    node.spin()
 
-  node.destroy_node()
-  rclpy.shutdown()
+    node.destroy_node()
+    rclpy.shutdown()
+
 
 if __name__ == '__main__':
-  main()
+    main()
