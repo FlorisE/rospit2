@@ -1,8 +1,6 @@
 # rospit2
 Physical Integration Testing for ROS 2.
 
-Tested in ROS 2 Eloquent on Ubuntu 18.04.
-
 ## How to run the turlesim example
 A simple example test script is included. Follow these instructions to run it:
 1. Follow the turtlesim installation instructions from [this tutorial](https://index.ros.org/doc/ros2/Tutorials/Turtlesim/Introducing-Turtlesim/)
