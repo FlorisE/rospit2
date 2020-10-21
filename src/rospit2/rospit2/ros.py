@@ -98,7 +98,8 @@ class ROSTestSuite(TestSuite):
         self.subscription_manager = SubscriptionManager(self.node, subscribers)
 
     def run(self, logger):
-        """Run the test suite.
+        """
+        Run the test suite.
 
         Wraps the super method to add subscription management.
         """
@@ -215,7 +216,8 @@ class ROSTestRunnerNode(Node):
         self.active_goal_handle = None
 
     def execute_xml_test_suite(self, goal_handle):
-        """Execute a test suite specified in an XML file.
+        """
+        Execute a test suite specified in an XML file.
 
         Request should be a string specifying the path to the test to run.
         """

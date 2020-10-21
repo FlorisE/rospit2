@@ -20,7 +20,8 @@ class InvariantFailedException(Exception):
 
 
 class _TestRunnerState(object):
-    """Class to hold the current state of the test runner.
+    """
+    Class to hold the current state of the test runner.
 
     Grouped in a class instead of being globals as they are not static.
     """

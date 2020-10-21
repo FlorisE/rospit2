@@ -12,7 +12,8 @@ from .framework import InvariantFailedException, TestCase
 
 
 class DeclarativeTestCase(TestCase):
-    """A test case that completely declares how it should be executed.
+    """
+    A test case that completely declares how it should be executed.
 
     Can be used in for example scripting environments for creating test cases.
     """
