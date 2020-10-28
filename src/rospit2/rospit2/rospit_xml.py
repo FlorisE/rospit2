@@ -42,13 +42,16 @@ from .numeric import BothLimitsCondition, \
 from .ros import ExecutionReturnedEvaluator, \
                  MessageEvaluator, \
                  MessageReceivedEvaluator, \
-                 MessageValue, \
                  NumericMessageEvaluator, \
+                 Occurrence, \
                  Publish, \
                  ROSDeclarativeTestCase, \
                  ROSTestSuite, \
                  ServiceCall, \
-                 Sleep
+                 Sleep, \
+                 StaticValue, \
+                 StringEqualsCondition, \
+                 TopicValue
 
 NS = '{https://www.aist.go.jp/rospit}'
 XSI_TYPE = '{http://www.w3.org/2001/XMLSchema-instance}type'
@@ -84,13 +87,9 @@ def get_test_suite_from_xml_path(node, path, validate=True):
 
 def get_bool(value):
     """Get a bool from value."""
-    if str(value) == '1':
+    if str(value) == '1' or value == 'true':
         return True
-    elif str(value) == '0':
-        return False
-    elif value == 'true':
-        return True
-    elif value == 'false':
+    elif str(value) == '0' or value == 'false' or value is None:
         return False
     else:
         raise ValueError('value was not recognized as a valid boolean')
@@ -160,7 +159,7 @@ class SubscriberFactory(object):
         for value_elem in elem.getchildren():
             assert(value_elem.tag == with_ns('Value'))
             elem_type = value_elem.attrib[XSI_TYPE]
-            if elem_type == 'MessageValue':
+            if elem_type == 'TopicValue':
                 topic = value_elem.attrib['topic']
                 msg_type = value_elem.attrib['type']
                 self.msg_value_subscribers.append((topic, msg_type))
@@ -182,6 +181,25 @@ class SubscriberFactory(object):
             topic = elem.attrib['topic']
             msg_type = elem.attrib['type']
             self.msg_received_subscribers.append((topic, msg_type))
+        elif elem_type == 'MessageEvaluator':
+            topic = elem.attrib['topic']
+            msg_type = elem.attrib['type']
+            self.msg_value_subscribers.append((topic, msg_type))
+
+
+def get_occurrence(occurrence_str):
+    """Convert an occurrence string to an enum value."""
+    occurrence_map = {
+            'once-and-only': Occurrence.ONCE_AND_ONLY,
+            'only-once': Occurrence.ONLY_ONCE,
+            'once': Occurrence.ONCE,
+            'first': Occurrence.FIRST,
+            'last': Occurrence.LAST
+            }
+    try:
+        return occurrence_map[occurrence_str]
+    except KeyError:
+        raise ValueError(f'{occurrence_str} is not a valid occurrence string')
 
 
 class Parser(object):
@@ -333,10 +351,15 @@ class Parser(object):
     def get_value_from_element(self, element):
         """Get the value of element."""
         elem_type = element.attrib[XSI_TYPE]
-        if elem_type == 'MessageValue':
-            return MessageValue(
+        if elem_type == 'TopicValue':
+            return TopicValue(
                 element.attrib['topic'],
                 element.attrib.get('field', None),
+                self.test_suite)
+        elif elem_type == 'StaticValue':
+            return StaticValue(
+                element.attrib['value'],
+                element.attrib['type'],
                 self.test_suite)
         else:
             raise ValueError('Element is of unknown type')
@@ -374,28 +397,32 @@ class Parser(object):
                 float(attr['upper_limit_value']),
                 get_bool(attr.get('upper_limit_inclusive', 'true')))
             return BothLimitsCondition(lower_limit, upper_limit, name)
+        elif elem_type == 'StringEquals':
+            return StringEqualsCondition()
         else:
             raise ValueError('Unexpected type {}'.format(elem_type))
 
-    def evaluator_factory(self, element):
+    def evaluator_factory(self, elem):
         """Create an evaluator for element."""
-        elem_type = element.attrib[XSI_TYPE]
+        elem_type = elem.attrib[XSI_TYPE]
         if elem_type == 'StaticBooleanEvaluator':
-            return StaticBooleanEvaluator(get_bool(element.attrib['value']))
+            return StaticBooleanEvaluator(get_bool(elem.attrib['value']))
         elif elem_type == 'MessageReceivedEvaluator':
             return MessageReceivedEvaluator(
-                self.node, element.attrib['topic'], element.attrib['type'],
-                element.attrib.get('field', None))
+                self.node, elem.attrib['topic'], elem.attrib['type'],
+                elem.attrib.get('field', None))
         elif elem_type == 'MessageEvaluator':
-            return MessageEvaluator(self.node, element.attrib['topic'],
-                                    element.attrib['type'],
-                                    element.attrib.get('field', None))
+            return MessageEvaluator(self.node, elem.attrib['topic'],
+                                    elem.attrib['type'],
+                                    get_occurrence(elem.attrib['occurrence']),
+                                    get_bool(elem.attrib['negate']),
+                                    elem.attrib.get('field', None))
         elif elem_type == 'ExecutionReturnedEvaluator':
-            field = element.attrib.get('field', None)
+            field = elem.attrib.get('field', None)
             return ExecutionReturnedEvaluator(self.current_test_case, field)
         elif elem_type == 'NumericMessageEvaluator':
             return NumericMessageEvaluator(
-                self.node, element.attrib['topic'], element.attrib['type'],
-                element.attrib.get('field', None))
+                self.node, elem.attrib['topic'], elem.attrib['type'],
+                elem.attrib.get('field', None))
         else:
             raise ValueError('Unexpected type {}'.format(elem_type))

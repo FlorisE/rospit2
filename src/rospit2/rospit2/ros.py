@@ -24,6 +24,8 @@
 import importlib
 import time
 
+from Enum import Enum, auto
+
 import rclpy
 from rclpy.action import ActionServer
 from rclpy.duration import Duration
@@ -123,7 +125,7 @@ class SubscriptionManager(object):
                     topic, msg_type, self.store_message, topic)
             if topic not in self.node.msg_value_subscribers:
                 self.node.msg_value_subscribers[topic] = \
-                        self.initialized_subscribers[topic]
+                    self.initialized_subscribers[topic]
         for topic, msg_type in self.subscribers.msg_received_subscribers:
             if topic not in self.initialized_subscribers:
                 self.initialized_subscribers[topic] = self.get_subscriber(
@@ -322,7 +324,7 @@ class ROSTestRunnerNode(Node):
         self.active_goal_handle.publish_feedback(feedback_msg)
 
 
-class MessageValue(object):
+class TopicValue(object):
     """Message value."""
 
     def __init__(self, topic, field, test_suite):
@@ -335,6 +337,20 @@ class MessageValue(object):
         """Get the value of the message."""
         message = self.test_suite.messages[self.topic]
         return get_field_or_message(message, self.field)
+
+
+class StaticValue(object):
+    """Static value."""
+
+    def __init__(self, value, type_, test_suite):
+        """Initialize."""
+        self.value = value
+        self.type = type_
+        self.test_suite = test_suite
+
+    def get_value(self):
+        """Get the static value."""
+        return self.value
 
 
 def get_field_or_message(message, field_str):
@@ -353,20 +369,20 @@ class MessageEvaluatorBase(Evaluator):
 
     def __init__(self, node, topic, topic_type, field=None):
         """Initialize the message evaluator."""
-        self.received = False
+        self.received = 0
         self.node = node
         self.topic = topic
         self.topic_type = topic_type
         self.field = field
-        self.data = None
+        self.data = []
         msg_type = get_message(topic_type)
         self.subscriber = self.node.create_subscription(
             msg_type, topic, self.callback, 10)
 
     def callback(self, data):
         """Fill data and mark as received."""
-        self.data = get_field_or_message(data, self.field)
-        self.received = True
+        self.data.append(get_field_or_message(data, self.field))
+        self.received += 1
 
 
 class MessageReceivedEvaluator(MessageEvaluatorBase):
@@ -376,20 +392,35 @@ class MessageReceivedEvaluator(MessageEvaluatorBase):
         """Initialize."""
         MessageEvaluatorBase.__init__(self, node, topic, topic_type, field)
 
-    def evaluate_internal(self, condition, measurement=None):
+    def evaluate_internal(self, c, measurement=None):
         """Internally evaluate the message."""
         if measurement is None:
             measurement = BinaryMeasurement(self.received)
         return Evaluation(
-            measurement, condition, self.received == condition.value)
+            measurement, c,
+            self.received and c.value or not self.received and not c.value)
+
+
+class Occurrence(Enum):
+    """Specifies how something should occur in terms of time."""
+
+    ONCE_AND_ONLY = auto()
+    ONLY_ONCE = auto()
+    ONCE = auto()
+    FIRST = auto()
+    LAST = auto()
 
 
 class MessageEvaluator(MessageEvaluatorBase):
     """Evaluate the content of the message."""
 
-    def __init__(self, node, topic, topic_type, field=None):
+    def __init__(
+            self, node, topic, topic_type, occurrence,
+            negate=False, field=None):
         """Initialize."""
         MessageEvaluatorBase.__init__(self, node, topic, topic_type, field)
+        self.occurrence = occurrence
+        self.negate = negate
 
     def evaluate_internal(self, condition, measurement=None):
         """Internally evaluate the message."""
@@ -397,7 +428,20 @@ class MessageEvaluator(MessageEvaluatorBase):
             while self.data is None:
                 time.sleep(1)
             measurement = self.data
-        return Evaluation(measurement, condition, self.data == condition.value)
+        if self.occurrence == Occurrence.ONCE:
+            e = condition.value in self.data
+        elif self.occurrence == Occurrence.ONLY_ONCE:
+            e = self.data.count(condition.value) == 1
+        elif self.occurrence == Occurrence.FIRST:
+            e = len(self.data) > 0 and self.data[0] == condition.value
+        elif self.occurrence == Occurrence.LAST:
+            e = len(self.data) > 0 and self.data[-1] == condition.value
+        elif self.occurrence == Occurrence.ONCE_AND_ONLY:
+            e = len(self.data) == 1 and self.data[0] == condition.value
+        return Evaluation(
+            measurement,
+            condition,
+            e and not self.negate or not e and self.negate)
 
 
 class ExecutionReturnedEvaluator(Evaluator):
@@ -492,7 +536,7 @@ def _fill_parameters(parameters):
             for key, value in item.items():
                 return_value[key] = _process(value)
             return return_value
-        elif isinstance(item, MessageValue):
+        elif isinstance(item, TopicValue) or isinstance(item, StaticValue):
             return item.get_value()
         else:
             return item

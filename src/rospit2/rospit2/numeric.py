@@ -193,7 +193,9 @@ class EqualToEvaluator(Evaluator):
         assert(isinstance(measurement, NumericMeasurement))
 
         return Evaluation(
-            measurement, condition, measurement.value == condition.value)
+            measurement, condition,
+            measurement.value >= condition.value - self.epsilon and
+            measurement.value <= condition.value + self.epsilon)
 
 
 class NotEqualToEvaluator(Evaluator):
@@ -426,10 +428,11 @@ class GreaterThanOrEqualToCondition(Condition):
 class EqualToCondition(Condition):
     """Condition for a numeric value that should be equal to some value."""
 
-    def __init__(self, value, name=''):
+    def __init__(self, value, epsilon, name=''):
         """Initialize."""
         Condition.__init__(self, value, name)
         self.equal_to = value
+        self.epsilon = epsilon
 
     def __repr__(self):
         """Get string representation of the condition."""

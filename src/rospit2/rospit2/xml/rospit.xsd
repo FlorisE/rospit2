@@ -107,21 +107,44 @@
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
-  <xs:complexType name="AMessageHasBeenReceivedOnTopic">
+  <xs:complexType name="StringEquals">
+    <xs:complexContent>
+      <xs:extension base="rospit:ConditionType">
+        <xs:attribute name="value" type="xs:string" use="required" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="MessageReceivedOnTopicEvaluator">
     <xs:complexContent>
       <xs:extension base="rospit:EvaluatorType">
         <xs:attribute name="topic" type="xs:string" />
+        <xs:attribute name="type" type="xs:string" use="required" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
-  <xs:complexType name="StaticBooleanEvaluator">
+  <xs:attribute name="occurrence">
+    <xs:simpleType>
+      <xs:restriction base="xs:string">
+        <xs:enumeration value="once-and-only"/>
+        <xs:enumeration value="once"/>
+        <xs:enumeration value="only-once" />
+        <xs:enumeration value="first"/>
+        <xs:enumeration value="last"/>
+      </xs:restriction>
+    </xs:simpleType>
+  </xs:attribute>
+  <xs:complexType name="MessageEvaluator">
     <xs:complexContent>
       <xs:extension base="rospit:EvaluatorType">
-        <xs:attribute name="value" type="xs:boolean" use="required" />
+        <xs:attribute name="topic" type="xs:string" use="required" />
+        <xs:attribute ref="occurrence" use="required" />
+        <xs:attribute name="field" type="xs:string" use="required" />
+        <xs:attribute name="type" type="xs:string" use="required" />
+        <xs:attribute name="negate" type="xs:boolean" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
-  <xs:complexType name="MessageValue">
+  <xs:complexType name="TopicValue">
     <xs:complexContent>
       <xs:extension base="rospit:ValueType">
         <xs:attribute name="topic" type="xs:string" use="required" />
@@ -130,11 +153,10 @@
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
-  <xs:complexType name="MessageEvaluator">
+  <xs:complexType name="StaticValue">
     <xs:complexContent>
-      <xs:extension base="rospit:EvaluatorType">
-        <xs:attribute name="topic" type="xs:string" use="required" />
-        <xs:attribute name="field" type="xs:string" use="required" />
+      <xs:extension base="rospit:ValueType">
+        <xs:attribute name="value" type="xs:string" use="required" />
         <xs:attribute name="type" type="xs:string" use="required" />
       </xs:extension>
     </xs:complexContent>
