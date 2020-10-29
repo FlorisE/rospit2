@@ -319,21 +319,16 @@ class Parser(object):
             raise Exception('Unidenfied step {}'.format(elem_type))
 
     def get_message(self, element):
-        """Get message from element."""
-        children = element.getchildren()
-        if len(children) == 1:
-            message_elem = children[0]
-            param_elems = message_elem.getchildren()
-            if len(param_elems) != 0:
-                params = self.get_param_from_elements(param_elems)
-            else:
-                params = {}
+        """Parse Message element."""
+        parameters = element.getchildren()
+        if len(parameters) > 0:
+            params = self.get_param_from_elements(parameters)
             return params
         else:
             return None
 
     def get_param_from_elements(self, elements):
-        """Get param for elements."""
+        """Parse Parameter element."""
         params = {}
         for param in elements:
             current_param = params
@@ -398,7 +393,7 @@ class Parser(object):
                 get_bool(attr.get('upper_limit_inclusive', 'true')))
             return BothLimitsCondition(lower_limit, upper_limit, name)
         elif elem_type == 'StringEquals':
-            return StringEqualsCondition()
+            return StringEqualsCondition(attr['value'])
         else:
             raise ValueError('Unexpected type {}'.format(elem_type))
 
@@ -412,10 +407,15 @@ class Parser(object):
                 self.node, elem.attrib['topic'], elem.attrib['type'],
                 elem.attrib.get('field', None))
         elif elem_type == 'MessageEvaluator':
+            try:
+                negate = elem.attrib['negate']
+                negate = get_bool(negate)
+            except KeyError:
+                negate = False
             return MessageEvaluator(self.node, elem.attrib['topic'],
                                     elem.attrib['type'],
                                     get_occurrence(elem.attrib['occurrence']),
-                                    get_bool(elem.attrib['negate']),
+                                    negate,
                                     elem.attrib.get('field', None))
         elif elem_type == 'ExecutionReturnedEvaluator':
             field = elem.attrib.get('field', None)

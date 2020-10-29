@@ -123,21 +123,22 @@
     </xs:complexContent>
   </xs:complexType>
   <xs:attribute name="occurrence">
-    <xs:simpleType>
-      <xs:restriction base="xs:string">
-        <xs:enumeration value="once-and-only"/>
-        <xs:enumeration value="once"/>
-        <xs:enumeration value="only-once" />
-        <xs:enumeration value="first"/>
-        <xs:enumeration value="last"/>
-      </xs:restriction>
-    </xs:simpleType>
   </xs:attribute>
   <xs:complexType name="MessageEvaluator">
     <xs:complexContent>
       <xs:extension base="rospit:EvaluatorType">
         <xs:attribute name="topic" type="xs:string" use="required" />
-        <xs:attribute ref="occurrence" use="required" />
+        <xs:attribute name="occurrence" use="required">
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="once-and-only"/>
+              <xs:enumeration value="once"/>
+              <xs:enumeration value="only-once" />
+              <xs:enumeration value="first"/>
+              <xs:enumeration value="last"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:attribute>
         <xs:attribute name="field" type="xs:string" use="required" />
         <xs:attribute name="type" type="xs:string" use="required" />
         <xs:attribute name="negate" type="xs:boolean" />
@@ -226,7 +227,6 @@
     <xs:sequence>
       <xs:element name="Parameter" type="rospit:ParameterType" minOccurs="0" maxOccurs="unbounded" />
     </xs:sequence>
-    <xs:attribute name="type" type="xs:string" use="required" />
   </xs:complexType>
   <xs:complexType name="MessageYaml">
     <xs:simpleContent>

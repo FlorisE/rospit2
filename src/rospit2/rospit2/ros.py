@@ -23,8 +23,7 @@
 
 import importlib
 import time
-
-from Enum import Enum, auto
+from enum import Enum, auto
 
 import rclpy
 from rclpy.action import ActionServer
@@ -47,8 +46,8 @@ from rospit_msgs.msg import Condition as ConditionMessage, \
 
 from .binary import BinaryMeasurement
 from .declarative import DeclarativeTestCase, Step
-from .framework import Evaluation, Evaluator, Measurement, \
-                       TestSuite, get_logger
+from .framework import Condition, Evaluation, Evaluator, Measurement, \
+                       Measurements, TestSuite, get_logger
 from .numeric import BothLimitsCondition, BothLimitsEvaluator, \
                      EqualToCondition, EqualToEvaluator, \
                      GreaterThanCondition, GreaterThanEvaluator, \
@@ -64,6 +63,19 @@ from .numeric import BothLimitsCondition, BothLimitsEvaluator, \
 
 
 INVARIANT_EVALUATIONS_TOPIC = '/invariant_evaluations'
+
+
+class StringEqualsCondition(Condition):
+    """Condition that a string should equal another string."""
+
+    def __init__(self, value, name=''):
+        """Initialize."""
+        self.value = value
+        self.name = self.__class__.__name__ if name == '' else name
+
+    def __repr__(self):
+        """Get a string representation of the condition."""
+        return '{}({})'.format(self.name, self.value)
 
 
 def map_evaluation(evaluation):
@@ -98,8 +110,9 @@ def map_test_suite_report(report):
 class SubscriptionManager(object):
     """Manages subscriptions."""
 
-    def __init__(self, node, subscribers):
+    def __init__(self, test_suite, node, subscribers):
         """Initialize."""
+        self.test_suite = test_suite
         self.node = node
         self.subscribers = subscribers
         self.initialized_subscribers = {}
@@ -119,19 +132,21 @@ class SubscriptionManager(object):
 
     def initialize_subscribers(self):
         """Initialize the subscribers."""
-        for topic, msg_type in self.subscribers.msg_value_subscribers:
+        for topic, msg_type in self.test_suite.msg_value_subscribers:
             if topic not in self.initialized_subscribers:
+                msg_module = get_message(msg_type)
                 self.initialized_subscribers[topic] = self.get_subscriber(
-                    topic, msg_type, self.store_message, topic)
-            if topic not in self.node.msg_value_subscribers:
-                self.node.msg_value_subscribers[topic] = \
+                    topic, msg_module, self.test_suite.store_message)
+            if topic not in self.test_suite.msg_value_subscribers:
+                self.test_suite.msg_value_subscribers[topic] = \
                     self.initialized_subscribers[topic]
-        for topic, msg_type in self.subscribers.msg_received_subscribers:
+        for topic, msg_type in self.test_suite.msg_received_subscribers:
             if topic not in self.initialized_subscribers:
+                msg_module = get_message(msg_type)
                 self.initialized_subscribers[topic] = self.get_subscriber(
-                    topic, msg_type, self.store_message, topic)
-            if topic not in self.node.msg_received_subscribers:
-                self.node.msg_received_subscribers[topic] = \
+                    topic, msg_module, self.test_suite.store_message)
+            if topic not in self.test_suite.msg_received_subscribers:
+                self.test_suite.msg_received_subscribers[topic] = \
                         self.initialized_subscribers[topic]
 
 
@@ -146,7 +161,8 @@ class ROSTestSuite(TestSuite):
         self.message_received_on = set()
         self.msg_value_subscribers = {}
         self.msg_received_subscribers = {}
-        self.subscription_manager = SubscriptionManager(self.node, subscribers)
+        self.subscription_manager = SubscriptionManager(
+                self, self.node, subscribers)
 
     def run(self, logger):
         """
@@ -411,6 +427,41 @@ class Occurrence(Enum):
     LAST = auto()
 
 
+class MessageEvaluation(Evaluation):
+    """Evaluation of a message."""
+
+    def __init__(self, measurements, condition, nominal, occurrence):
+        """Initialize."""
+        super().__init__(measurements, condition, nominal)
+        self.measurements = measurements
+        self.occurrence = occurrence
+
+    def expected_actual_string(self):
+        """Get an evaluation string."""
+        if self.occurrence == Occurrence.ONCE:
+            return '{} in [{}]'.format(
+                self.condition.value,
+                ', '.join(self.measurements.value))
+        elif self.occurrence == Occurrence.ONLY_ONCE:
+            return '{} only once in [{}]'.format(
+                self.condition.value,
+                ', '.join(self.measurements.value))
+        elif self.occurrence == Occurrence.FIRST:
+            return '{} first in [{}]'.format(
+                self.condition.value,
+                ', '.join(self.measurements.value))
+        elif self.occurrence == Occurrence.LAST:
+            return '{} last in [{}]'.format(
+                self.condition.value,
+                ', '.join(self.measurements.value))
+        elif self.occurrence == Occurrence.ONCE_AND_ONLY:
+            return '{} once and only once in [{}]'.format(
+                self.condition.value,
+                ', '.join(self.measurements.value))
+        else:
+            return f'{self.condition.value}({self.measurements.value})'
+
+
 class MessageEvaluator(MessageEvaluatorBase):
     """Evaluate the content of the message."""
 
@@ -427,21 +478,25 @@ class MessageEvaluator(MessageEvaluatorBase):
         if measurement is None:
             while self.data is None:
                 time.sleep(1)
-            measurement = self.data
+            measurements = Measurements(self.data)
         if self.occurrence == Occurrence.ONCE:
-            e = condition.value in self.data
+            e = condition.value in measurements.value
         elif self.occurrence == Occurrence.ONLY_ONCE:
-            e = self.data.count(condition.value) == 1
+            e = measurements.value.count(condition.value) == 1
         elif self.occurrence == Occurrence.FIRST:
-            e = len(self.data) > 0 and self.data[0] == condition.value
+            e = len(measurements.value) > 0 and \
+                measurements.value[0] == condition.value
         elif self.occurrence == Occurrence.LAST:
-            e = len(self.data) > 0 and self.data[-1] == condition.value
+            e = len(measurements.value) > 0 and \
+                measurements.value[-1] == condition.value
         elif self.occurrence == Occurrence.ONCE_AND_ONLY:
-            e = len(self.data) == 1 and self.data[0] == condition.value
-        return Evaluation(
-            measurement,
+            e = len(measurements.value) == 1 and \
+                measurements.value[0] == condition.value
+        return MessageEvaluation(
+            measurements,
             condition,
-            e and not self.negate or not e and self.negate)
+            e and not self.negate or not e and self.negate,
+            self.occurrence)
 
 
 class ExecutionReturnedEvaluator(Evaluator):

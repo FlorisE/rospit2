@@ -18,15 +18,26 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-"""Unused script to run tests."""
+"""Script that launches PIT nodes and services."""
 
-import sys
+
+import rclpy
+from rclpy.executors import MultiThreadedExecutor
+
+from rospit2.ros import ROSTestRunnerNode
 
 
 def main(args=None):
-    """Do nothing for now."""
-    pass
+    """Run the test script."""
+    rclpy.init(args=args)
+    executor = MultiThreadedExecutor()
+    node = ROSTestRunnerNode(executor)
+    executor.add_node(node)
+    node.spin()
+
+    node.destroy_node()
+    rclpy.shutdown()
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()

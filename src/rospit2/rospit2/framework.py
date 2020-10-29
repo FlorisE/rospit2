@@ -571,6 +571,20 @@ class Measurement(object):
         return '{}({})'.format(self.__class__.__name__, self.value)
 
 
+class Measurements(Measurement):
+    """Contains a set of measurements."""
+
+    def __init__(self, values):
+        """Initialize."""
+        super().__init__(values)
+
+    def __repr__(self):
+        """Get string representations of the measurements."""
+        return '{}({})'.format(
+            self.__class__.__name__,
+            ', '.join(self.value))
+
+
 class Sensor(object):
     """Abstract base class for sensors."""
 

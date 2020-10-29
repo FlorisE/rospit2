@@ -341,8 +341,6 @@ def try_get_limit(limit):
 class LowerLimitCondition(Condition):
     """Condition for a numeric function with just a lower limit."""
 
-    __metaclass__ = ABCMeta
-
     def __init__(
             self, lower_limit, name=''):
         """Initialize."""
@@ -361,8 +359,6 @@ class LowerLimitCondition(Condition):
 class UpperLimitCondition(Condition):
     """Condition for a numeric function with just an upper limit."""
 
-    __metaclass__ = ABCMeta
-
     def __init__(
             self, upper_limit, name=''):
         """Initialize."""
@@ -379,8 +375,6 @@ class UpperLimitCondition(Condition):
 
 class BothLimitsCondition(LowerLimitCondition, UpperLimitCondition):
     """Condition with a lower limit and an upper limit."""
-
-    __metaclass__ = ABCMeta
 
     def __init__(
             self, lower_limit, upper_limit, name=''):
