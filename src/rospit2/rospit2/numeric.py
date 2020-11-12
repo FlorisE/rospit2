@@ -50,7 +50,7 @@ def measurement_wrapper(measurement):
 class LowerLimitEvaluator(Evaluator):
     """Evaluator for the lower limit of numeric conditions."""
 
-    def __init__(self, evaluator):
+    def __init__(self, evaluator=None):
         """Initialize."""
         Evaluator.__init__(self, evaluator)
 
@@ -73,7 +73,7 @@ class LowerLimitEvaluator(Evaluator):
 class UpperLimitEvaluator(Evaluator):
     """Evaluator for the upper limit of numeric conditions."""
 
-    def __init__(self, evaluator):
+    def __init__(self, evaluator=None):
         """Initialize."""
         Evaluator.__init__(self, evaluator)
 
@@ -96,7 +96,7 @@ class UpperLimitEvaluator(Evaluator):
 class BothLimitsEvaluator(LowerLimitEvaluator, UpperLimitEvaluator):
     """Evaluator for numeric conditions."""
 
-    def __init__(self, evaluator):
+    def __init__(self, evaluator=None):
         """Initialize."""
         LowerLimitEvaluator.__init__(self, evaluator)
         UpperLimitEvaluator.__init__(self, evaluator)
@@ -127,7 +127,7 @@ class BothLimitsEvaluator(LowerLimitEvaluator, UpperLimitEvaluator):
 class GreaterThanEvaluator(Evaluator):
     """Greater than predicate."""
 
-    def __init__(self, evaluator):
+    def __init__(self, evaluator=None):
         """Initialize."""
         Evaluator.__init__(self, evaluator)
 
@@ -151,7 +151,7 @@ class GreaterThanEvaluator(Evaluator):
 class GreaterThanOrEqualToEvaluator(Evaluator):
     """Greater than or equal to predicate."""
 
-    def __init__(self, evaluator):
+    def __init__(self, evaluator=None):
         """Initialize."""
         Evaluator.__init__(self, evaluator)
 
@@ -175,7 +175,7 @@ class GreaterThanOrEqualToEvaluator(Evaluator):
 class EqualToEvaluator(Evaluator):
     """Equal to predicate."""
 
-    def __init__(self, evaluator):
+    def __init__(self, evaluator=None):
         """Initialize."""
         Evaluator.__init__(self, evaluator)
 
@@ -201,7 +201,7 @@ class EqualToEvaluator(Evaluator):
 class NotEqualToEvaluator(Evaluator):
     """Not equal to predicate."""
 
-    def __init__(self, evaluator):
+    def __init__(self, evaluator=None):
         """Initialize."""
         Evaluator.__init__(self, evaluator)
 
@@ -225,7 +225,7 @@ class NotEqualToEvaluator(Evaluator):
 class LessThanOrEqualToEvaluator(Evaluator):
     """Less than or equal to predicate."""
 
-    def __init__(self, evaluator):
+    def __init__(self, evaluator=None):
         """Initialize."""
         Evaluator.__init__(self, evaluator)
 
@@ -249,7 +249,7 @@ class LessThanOrEqualToEvaluator(Evaluator):
 class LessThanEvaluator(Evaluator):
     """Less than predicate."""
 
-    def __init__(self, evaluator):
+    def __init__(self, evaluator=None):
         """Initialize."""
         Evaluator.__init__(self, evaluator)
 
@@ -295,6 +295,30 @@ class NumericMeasurement(Measurement):
     def __repr__(self):
         """Get a string representation of the numeric measurement."""
         return 'NumericMeasurement({})'.format(self.value)
+
+    def __lt__(self, other):
+        """Compare if value is lesser than other."""
+        return self.value < other
+
+    def __le__(self, other):
+        """Compare if value is lesser than or equal to other."""
+        return self.value <= other
+
+    def __eq__(self, other):
+        """Compare if value is equal to other."""
+        return self.value == other
+
+    def __ne__(self, other):
+        """Compare if value is not equal to other."""
+        return self.value != other
+
+    def __gt__(self, other):
+        """Compare if value is greater than other."""
+        return self.value > other
+
+    def __ge__(self, other):
+        """Compare if value is greater than or equal to other."""
+        return self.value >= other
 
 
 Limit = namedtuple('Limit', 'limit is_inclusive')

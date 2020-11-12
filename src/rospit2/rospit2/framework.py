@@ -582,7 +582,7 @@ class Measurements(Measurement):
         """Get string representations of the measurements."""
         return '{}({})'.format(
             self.__class__.__name__,
-            ', '.join(self.value))
+            ', '.join(str(self.value)))
 
 
 class Sensor(object):

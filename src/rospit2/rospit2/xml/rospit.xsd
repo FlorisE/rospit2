@@ -128,7 +128,16 @@
     <xs:complexContent>
       <xs:extension base="rospit:EvaluatorType">
         <xs:attribute name="topic" type="xs:string" use="required" />
-        <xs:attribute name="occurrence" use="required">
+        <xs:attribute name="field" type="xs:string" use="required" />
+        <xs:attribute name="type" type="xs:string" use="required" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="MessagesEvaluator">
+    <xs:complexContent>
+      <xs:extension base="rospit:EvaluatorType">
+        <xs:attribute name="topic" type="xs:string" use="required" />
+        <xs:attribute name="occurrence" default="last">
           <xs:simpleType>
             <xs:restriction base="xs:string">
               <xs:enumeration value="once-and-only"/>
@@ -136,6 +145,7 @@
               <xs:enumeration value="only-once" />
               <xs:enumeration value="first"/>
               <xs:enumeration value="last"/>
+              <xs:enumeration value="always"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:attribute>
@@ -165,6 +175,11 @@
   <xs:complexType name="NumericMessageEvaluator">
     <xs:complexContent>
       <xs:extension base="rospit:MessageEvaluator" />
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="NumericMessagesEvaluator">
+    <xs:complexContent>
+      <xs:extension base="rospit:MessagesEvaluator" />
     </xs:complexContent>
   </xs:complexType>
   <xs:complexType name="SetUpType">

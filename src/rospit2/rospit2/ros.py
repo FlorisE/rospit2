@@ -47,7 +47,7 @@ from rospit_msgs.msg import Condition as ConditionMessage, \
 from .binary import BinaryMeasurement
 from .declarative import DeclarativeTestCase, Step
 from .framework import Condition, Evaluation, Evaluator, Measurement, \
-                       Measurements, TestSuite, get_logger
+                       Measurements, TestSuite
 from .numeric import BothLimitsCondition, BothLimitsEvaluator, \
                      EqualToCondition, EqualToEvaluator, \
                      GreaterThanCondition, GreaterThanEvaluator, \
@@ -381,10 +381,33 @@ def get_field_or_message(message, field_str):
 
 
 class MessageEvaluatorBase(Evaluator):
-    """Base class for message evaluation."""
+    """Base class for single (last) message evaluation."""
 
     def __init__(self, node, topic, topic_type, field=None):
         """Initialize the message evaluator."""
+        super().__init__(None)
+        self.received = False
+        self.node = node
+        self.topic = topic
+        self.topic_type = topic_type
+        self.field = field
+        self.data = None
+        msg_type = get_message(topic_type)
+        self.subscriber = self.node.create_subscription(
+            msg_type, topic, self.callback, 10)
+
+    def callback(self, data):
+        """Fill data and mark as received."""
+        self.data = get_field_or_message(data, self.field)
+        self.received = True
+
+
+class MessagesEvaluatorBase(Evaluator):
+    """Base class for multiple messages evaluation."""
+
+    def __init__(self, node, topic, topic_type, field=None):
+        """Initialize the message evaluator."""
+        super().__init__(None)
         self.received = 0
         self.node = node
         self.topic = topic
@@ -425,10 +448,11 @@ class Occurrence(Enum):
     ONCE = auto()
     FIRST = auto()
     LAST = auto()
+    ALWAYS = auto()
 
 
-class MessageEvaluation(Evaluation):
-    """Evaluation of a message."""
+class MessagesEvaluation(Evaluation):
+    """Evaluation of multiple messages."""
 
     def __init__(self, measurements, condition, nominal, occurrence):
         """Initialize."""
@@ -438,32 +462,56 @@ class MessageEvaluation(Evaluation):
 
     def expected_actual_string(self):
         """Get an evaluation string."""
+        values = ', '.join(
+            str(measurement.value) for measurement in self.measurements.value)
         if self.occurrence == Occurrence.ONCE:
             return '{} in [{}]'.format(
                 self.condition.value,
-                ', '.join(self.measurements.value))
+                values)
         elif self.occurrence == Occurrence.ONLY_ONCE:
             return '{} only once in [{}]'.format(
                 self.condition.value,
-                ', '.join(self.measurements.value))
+                values)
         elif self.occurrence == Occurrence.FIRST:
             return '{} first in [{}]'.format(
                 self.condition.value,
-                ', '.join(self.measurements.value))
+                values)
         elif self.occurrence == Occurrence.LAST:
             return '{} last in [{}]'.format(
                 self.condition.value,
-                ', '.join(self.measurements.value))
+                values)
         elif self.occurrence == Occurrence.ONCE_AND_ONLY:
             return '{} once and only once in [{}]'.format(
                 self.condition.value,
-                ', '.join(self.measurements.value))
+                values)
+        elif self.occurrence == Occurrence.ALWAYS:
+            return '{} always in [{}]'.format(
+                self.condition.value,
+                values)
         else:
             return f'{self.condition.value}({self.measurements.value})'
 
 
 class MessageEvaluator(MessageEvaluatorBase):
-    """Evaluate the content of the message."""
+    """Evaluate the content of a single message."""
+
+    def __init__(
+            self, node, topic, topic_type, field=None):
+        """Initialize."""
+        MessageEvaluatorBase.__init__(self, node, topic, topic_type, field)
+
+    def evaluate_internal(self, condition, measurement=None):
+        """Internally evaluate the message."""
+        if measurement is None:
+            while self.data is None:
+                time.sleep(1)
+            measurement = self.data
+
+        return Evaluation(measurement, condition, self.data == condition.value)
+
+
+class MessagesEvaluator(MessageEvaluatorBase):
+    """Evaluate the content of multiple messages."""
 
     def __init__(
             self, node, topic, topic_type, occurrence,
@@ -476,9 +524,27 @@ class MessageEvaluator(MessageEvaluatorBase):
     def evaluate_internal(self, condition, measurement=None):
         """Internally evaluate the message."""
         if measurement is None:
-            while self.data is None:
-                time.sleep(1)
+            if not self.data:
+                if self.occurrence == Occurrence.ONCE or \
+                   self.occurrence == Occurrence.ONCE_AND_ONLY or \
+                   self.occurrence == Occurrence.ONLY_ONCE or \
+                   self.occurrence == Occurrence.FIRST or \
+                   self.occurrence == Occurrence.LAST:
+                    return MessagesEvaluation(
+                        Measurements([]),
+                        condition,
+                        False if not self.negate else True,
+                        self.occurrence)
+                elif self.occurrence == Occurrence.ALWAYS:
+                    return MessagesEvaluation(
+                        Measurements([]),
+                        condition,
+                        True,
+                        self.occurrence)
+                else:
+                    raise ValueError('Occurrence is of unknown type')
             measurements = Measurements(self.data)
+
         if self.occurrence == Occurrence.ONCE:
             e = condition.value in measurements.value
         elif self.occurrence == Occurrence.ONLY_ONCE:
@@ -492,7 +558,9 @@ class MessageEvaluator(MessageEvaluatorBase):
         elif self.occurrence == Occurrence.ONCE_AND_ONLY:
             e = len(measurements.value) == 1 and \
                 measurements.value[0] == condition.value
-        return MessageEvaluation(
+        elif self.occurrence == Occurrence.ALWAYS:
+            e = all(condition.value == value for value in measurements.value)
+        return MessagesEvaluation(
             measurements,
             condition,
             e and not self.negate or not e and self.negate,
@@ -522,10 +590,111 @@ class ExecutionReturnedEvaluator(Evaluator):
         return evaluation
 
 
-class NumericMessageEvaluator(MessageEvaluatorBase):
+class UnableToEvaluateMessageException(Exception):
+    """Exception thrown when unable to evaluate a message."""
+
+    pass
+
+
+class NumericMessagesEvaluator(MessagesEvaluatorBase):
     """Evaluator for numeric messages."""
 
-    def __init__(self, node, topic, topic_type, field=None):
+    def __init__(
+            self, node, topic, topic_type, occurrence,
+            negate=False, field=None):
+        """Initialize."""
+        super().__init__(node, topic, topic_type, field)
+        self.occurrence = occurrence
+        self.negate = negate
+
+    def evaluate_internal(self, condition, measurements=None):
+        """Internally evaluate the numeric messages."""
+        if measurements is None:
+            if not self.data:
+                if self.occurrence == Occurrence.ONCE or \
+                   self.occurrence == Occurrence.ONCE_AND_ONLY or \
+                   self.occurrence == Occurrence.ONLY_ONCE or \
+                   self.occurrence == Occurrence.FIRST or \
+                   self.occurrence == Occurrence.LAST:
+                    return MessagesEvaluation(
+                        Measurements([]),
+                        condition,
+                        False if not self.negate else True,
+                        self.occurrence)
+                elif self.occurrence == Occurrence.ALWAYS:
+                    return MessagesEvaluator(
+                        Measurements([]),
+                        condition,
+                        True,
+                        self.occurrence)
+                else:
+                    raise ValueError('Occurrence is of unknown type')
+            else:
+                measurements = Measurements(
+                    [NumericMeasurement(datum) for datum in self.data])
+
+        evaluator = NumericMessageEvaluator(
+            self.node, self.topic, self.topic_type, self.field)
+        overall_evaluation = None
+        if self.occurrence == Occurrence.ONCE:
+            for measurement in measurements.value:
+                evaluation = evaluator.evaluate(condition, measurement)
+                if evaluation.nominal:
+                    overall_evaluation = MessagesEvaluation(
+                        measurements, condition,
+                        evaluation.nominal, self.occurrence)
+                    break
+        elif self.occurrence == Occurrence.ONLY_ONCE:
+            for measurement in measurements.value:
+                evaluation = evaluator.evaluate(condition, measurement)
+                if evaluation.nominal:
+                    if overall_evaluation:
+                        overall_evaluation = MessagesEvaluation(
+                            measurements, condition,
+                            not evaluation.nominal, self.occurrence)
+                        break
+                    else:
+                        overall_evaluation = MessagesEvaluation(
+                            measurements, condition,
+                            evaluation.nominal, self.occurrence)
+        elif self.occurrence == Occurrence.FIRST:
+            evaluation = evaluator.evaluate(condition, measurements.value[0])
+            overall_evaluation = MessagesEvaluation(
+                measurements, condition,
+                evaluation.nominal, self.occurrence)
+        elif self.occurrence == Occurrence.LAST:
+            evaluation = evaluator.evaluate(condition, measurements.value[-1])
+            overall_evaluation = MessagesEvaluation(
+                measurements, condition,
+                evaluation.nominal, self.occurrence)
+        elif self.occurrence == Occurrence.ONCE_AND_ONLY:
+            evaluation = len(measurements.value) == 1 and \
+                    evaluator.evaluate(condition, measurements.value[0])
+            overall_evaluation = MessagesEvaluation(
+                measurements, condition,
+                evaluation.nominal, self.occurrence)
+        elif self.occurrence == Occurrence.ALWAYS:
+            for measurement in measurements.value:
+                evaluation = evaluator.evaluate(condition, measurement)
+                if not evaluation.nominal:
+                    overall_evaluation = MessagesEvaluation(
+                        measurements, condition,
+                        evaluation.nominal, self.occurrence)
+                    break
+            overall_evaluation = MessagesEvaluation(
+                measurements, condition, True, self.occurrence)
+
+        if not overall_evaluation:
+            raise UnableToEvaluateMessageException()
+
+        return overall_evaluation
+
+
+class NumericMessageEvaluator(MessageEvaluatorBase):
+    """Evaluator for a single numeric message."""
+
+    def __init__(
+            self, node, topic, topic_type, field=None):
         """Initialize."""
         MessageEvaluatorBase.__init__(self, node, topic, topic_type, field)
 
@@ -534,7 +703,10 @@ class NumericMessageEvaluator(MessageEvaluatorBase):
         if measurement is None:
             while self.data is None:
                 time.sleep(1)
-            measurement = NumericMeasurement(self.data)
+            measurement = self.data
+        if measurement is not NumericMeasurement:
+            measurement = NumericMeasurement(measurement)
+
         type_map = {
             BothLimitsCondition: BothLimitsEvaluator,
             UpperLimitCondition: UpperLimitEvaluator,
@@ -555,14 +727,11 @@ class NumericMessageEvaluator(MessageEvaluatorBase):
         if evaluator_type is None:
             raise ValueError('Condition is of unknown type')
 
-        evaluation = evaluator_type(lambda: self.data).evaluate(
-            condition, measurement)
+        evaluator = evaluator_type()
 
-        get_logger().info('Condition {}, measurement {}, {}'.format(
-            condition, measurement,
-            'nominal' if evaluation.nominal else 'not nominal'))
+        evaluation = evaluator.evaluate(condition, measurement)
 
-        return evaluation
+        return Evaluation(measurement, condition, evaluation.nominal)
 
 
 def call_service(node, service_name, service_type, service_args):

@@ -7,11 +7,11 @@
     <Preconditions>
       <Precondition>
         <Condition xsi:type="BothLimits" lower_limit_value="5.54" upper_limit_value="5.55" />
-        <Evaluator xsi:type="NumericMessageEvaluator" topic="/turtle1/pose" field="x" type="turtlesim/msg/Pose" />
+        <Evaluator xsi:type="NumericMessagesEvaluator" topic="/turtle1/pose" field="x" type="turtlesim/msg/Pose" />
       </Precondition>
       <Precondition>
         <Condition xsi:type="BothLimits" lower_limit_value="5.54" upper_limit_value="5.55" />
-        <Evaluator xsi:type="NumericMessageEvaluator" topic="/turtle1/pose" field="y" type="turtlesim/msg/Pose" />
+        <Evaluator xsi:type="NumericMessagesEvaluator" topic="/turtle1/pose" field="y" type="turtlesim/msg/Pose" />
       </Precondition>
     </Preconditions>
     <Invariants>
@@ -29,11 +29,11 @@
     <Postconditions>
       <Postcondition>
         <Condition xsi:type="BothLimits" lower_limit_value="7.53" upper_limit_value="7.57" />
-        <Evaluator xsi:type="NumericMessageEvaluator" topic="/turtle1/pose" field="x" type="turtlesim/msg/Pose" />
+        <Evaluator xsi:type="NumericMessagesEvaluator" topic="/turtle1/pose" field="x" type="turtlesim/msg/Pose" />
       </Postcondition>
       <Postcondition>
         <Condition xsi:type="BothLimits" lower_limit_value="5.54" upper_limit_value="5.55" />
-        <Evaluator xsi:type="NumericMessageEvaluator" topic="/turtle1/pose" field="y" type="turtlesim/msg/Pose" />
+        <Evaluator xsi:type="NumericMessagesEvaluator" topic="/turtle1/pose" field="y" type="turtlesim/msg/Pose" />
       </Postcondition>
     </Postconditions>
     <TearDown>

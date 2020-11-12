@@ -42,7 +42,9 @@ from .numeric import BothLimitsCondition, \
 from .ros import ExecutionReturnedEvaluator, \
                  MessageEvaluator, \
                  MessageReceivedEvaluator, \
+                 MessagesEvaluator, \
                  NumericMessageEvaluator, \
+                 NumericMessagesEvaluator, \
                  Occurrence, \
                  Publish, \
                  ROSDeclarativeTestCase, \
@@ -181,10 +183,15 @@ class SubscriberFactory(object):
             topic = elem.attrib['topic']
             msg_type = elem.attrib['type']
             self.msg_received_subscribers.append((topic, msg_type))
-        elif elem_type == 'MessageEvaluator':
+        elif elem_type == 'MessageEvaluator' or \
+                elem_type == 'MessagesEvaluator' or \
+                elem_type == 'NumericMessageEvaluator' or \
+                elem_type == 'NumericMessagesEvaluator':
             topic = elem.attrib['topic']
             msg_type = elem.attrib['type']
             self.msg_value_subscribers.append((topic, msg_type))
+        else:
+            raise Exception(f'Unexpected child of type {elem_type}')
 
 
 def get_occurrence(occurrence_str):
@@ -194,7 +201,8 @@ def get_occurrence(occurrence_str):
             'only-once': Occurrence.ONLY_ONCE,
             'once': Occurrence.ONCE,
             'first': Occurrence.FIRST,
-            'last': Occurrence.LAST
+            'last': Occurrence.LAST,
+            'always': Occurrence.ALWAYS
             }
     try:
         return occurrence_map[occurrence_str]
@@ -407,22 +415,51 @@ class Parser(object):
                 self.node, elem.attrib['topic'], elem.attrib['type'],
                 elem.attrib.get('field', None))
         elif elem_type == 'MessageEvaluator':
+            return MessageEvaluator(self.node, elem.attrib['topic'],
+                                    elem.attrib['type'],
+                                    elem.attrib.get('field', None))
+        elif elem_type == 'MessagesEvaluator':
             try:
                 negate = elem.attrib['negate']
                 negate = get_bool(negate)
             except KeyError:
                 negate = False
-            return MessageEvaluator(self.node, elem.attrib['topic'],
-                                    elem.attrib['type'],
-                                    get_occurrence(elem.attrib['occurrence']),
-                                    negate,
-                                    elem.attrib.get('field', None))
+
+            try:
+                occurrence = elem.attrib['occurrence']
+                occurrence = get_occurrence(occurrence)
+            except KeyError:
+                occurrence = Occurrence.LAST
+
+            return MessagesEvaluator(self.node, elem.attrib['topic'],
+                                     elem.attrib['type'],
+                                     occurrence,
+                                     negate,
+                                     elem.attrib.get('field', None))
         elif elem_type == 'ExecutionReturnedEvaluator':
             field = elem.attrib.get('field', None)
             return ExecutionReturnedEvaluator(self.current_test_case, field)
         elif elem_type == 'NumericMessageEvaluator':
             return NumericMessageEvaluator(
                 self.node, elem.attrib['topic'], elem.attrib['type'],
+                elem.attrib.get('field', None))
+        elif elem_type == 'NumericMessagesEvaluator':
+            try:
+                negate = elem.attrib['negate']
+                negate = get_bool(negate)
+            except KeyError:
+                negate = False
+
+            try:
+                occurrence = elem.attrib['occurrence']
+                occurrence = get_occurrence(occurrence)
+            except KeyError:
+                occurrence = Occurrence.LAST
+
+            return NumericMessagesEvaluator(
+                self.node, elem.attrib['topic'], elem.attrib['type'],
+                occurrence,
+                negate,
                 elem.attrib.get('field', None))
         else:
             raise ValueError('Unexpected type {}'.format(elem_type))
