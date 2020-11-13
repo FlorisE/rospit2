@@ -21,7 +21,6 @@
 """A framework for running automated tests using external instrumentation."""
 
 import logging
-from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from time import sleep, strftime
 
@@ -31,7 +30,7 @@ class InvariantFailedException(Exception):
 
     def __init__(self):
         """Initialize."""
-        super.__init__()
+        super().__init__()
 
 
 class _TestRunnerState(object):
@@ -116,8 +115,6 @@ class Runner(object):
 class TestSuite(object):
     """Container for test cases."""
 
-    __metaclass__ = ABCMeta
-
     def __init__(self, name=''):
         """Initialize."""
         self.name = name
@@ -164,8 +161,6 @@ def all_conditions_nominal(conditions):
 
 class TestCase(object):
     """A test case with preconditions, invariants and postconditions."""
-
-    __metaclass__ = ABCMeta
 
     def __init__(self, name='', preconditions=None, invariants=None,
                  postconditions=None, wait_for_preconditions=False,
@@ -297,7 +292,6 @@ class TestCase(object):
         """
         pass
 
-    @abstractmethod
     def run(self):
         """Run the test."""
         pass
@@ -453,8 +447,8 @@ class CompositeEvaluation(Evaluation):
 
     def __init__(self, measurement, condition, evaluations):
         """Initialize."""
-        Evaluation.__init__(
-            self, measurement, condition,
+        super().__init__(
+            measurement, condition,
             all(evaluation.nominal for evaluation in evaluations))
         self.evaluations = evaluations
 
@@ -495,8 +489,6 @@ class ConditionEvaluatorPair(object):
 class Condition(object):
     """Abstract base class for conditions."""
 
-    __metaclass__ = ABCMeta
-
     def __init__(self, value, name=''):
         """Initialize."""
         self.value = value
@@ -510,13 +502,10 @@ class Condition(object):
 class Evaluator(object):
     """Abstract base class for evaluators."""
 
-    __metaclass__ = ABCMeta
-
     def __init__(self, evaluator):
         """Initialize."""
         self.evaluator = evaluator
 
-    @abstractmethod
     def evaluate_internal(self, condition, measurement=None):
         """
         Evaluate internally.
@@ -588,13 +577,10 @@ class Measurements(Measurement):
 class Sensor(object):
     """Abstract base class for sensors."""
 
-    __metaclass__ = ABCMeta
-
     def __init__(self):
         """Initialize."""
         self.last_sensed = None
 
-    @abstractmethod
     def sense_internal(self):
         """Read the sensor value."""
         pass

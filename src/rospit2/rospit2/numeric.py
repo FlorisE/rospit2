@@ -20,7 +20,6 @@
 
 """Numeric evaluation, e.g. a function with limits."""
 
-from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 
 from .framework import CompositeEvaluation, Condition, Evaluation, Evaluator, \
@@ -52,7 +51,7 @@ class LowerLimitEvaluator(Evaluator):
 
     def __init__(self, evaluator=None):
         """Initialize."""
-        Evaluator.__init__(self, evaluator)
+        super().__init__(evaluator)
 
     def evaluate_internal(self, condition, measurement=None):
         """Verify whether measurement matches the lower limit condition."""
@@ -75,7 +74,7 @@ class UpperLimitEvaluator(Evaluator):
 
     def __init__(self, evaluator=None):
         """Initialize."""
-        Evaluator.__init__(self, evaluator)
+        super().__init__(evaluator)
 
     def evaluate_internal(self, condition, measurement=None):
         """Verify whether measurement matches the upper limit condition."""
@@ -129,7 +128,7 @@ class GreaterThanEvaluator(Evaluator):
 
     def __init__(self, evaluator=None):
         """Initialize."""
-        Evaluator.__init__(self, evaluator)
+        super().__init__(evaluator)
 
     def evaluate_internal(self, condition, measurement=None):
         """
@@ -153,7 +152,7 @@ class GreaterThanOrEqualToEvaluator(Evaluator):
 
     def __init__(self, evaluator=None):
         """Initialize."""
-        Evaluator.__init__(self, evaluator)
+        super().__init__(evaluator)
 
     def evaluate_internal(self, condition, measurement=None):
         """
@@ -177,7 +176,7 @@ class EqualToEvaluator(Evaluator):
 
     def __init__(self, evaluator=None):
         """Initialize."""
-        Evaluator.__init__(self, evaluator)
+        super().__init__(evaluator)
 
     def evaluate_internal(self, condition, measurement=None):
         """
@@ -203,7 +202,7 @@ class NotEqualToEvaluator(Evaluator):
 
     def __init__(self, evaluator=None):
         """Initialize."""
-        Evaluator.__init__(self, evaluator)
+        super().__init__(evaluator)
 
     def evaluate_internal(self, condition, measurement=None):
         """
@@ -227,7 +226,7 @@ class LessThanOrEqualToEvaluator(Evaluator):
 
     def __init__(self, evaluator=None):
         """Initialize."""
-        Evaluator.__init__(self, evaluator)
+        super().__init__(evaluator)
 
     def evaluate_internal(self, condition, measurement=None):
         """
@@ -251,7 +250,7 @@ class LessThanEvaluator(Evaluator):
 
     def __init__(self, evaluator=None):
         """Initialize."""
-        Evaluator.__init__(self, evaluator)
+        super().__init__(evaluator)
 
     def evaluate_internal(self, condition, measurement=None):
         """
@@ -273,13 +272,10 @@ class LessThanEvaluator(Evaluator):
 class NumericSensor(Sensor):
     """Sensor that reads a numeric value."""
 
-    __metaclass__ = ABCMeta
-
     def __init__(self):
         """Initialize."""
-        Sensor.__init__(self)
+        super().__init__()
 
-    @abstractmethod
     def sense_internal(self):
         """Sense internally."""
         pass
@@ -290,11 +286,11 @@ class NumericMeasurement(Measurement):
 
     def __init__(self, value):
         """Initialize."""
-        Measurement.__init__(self, value)
+        super().__init__(value)
 
     def __repr__(self):
         """Get a string representation of the numeric measurement."""
-        return 'NumericMeasurement({})'.format(self.value)
+        return str(self.value)
 
     def __lt__(self, other):
         """Compare if value is lesser than other."""
@@ -368,7 +364,7 @@ class LowerLimitCondition(Condition):
     def __init__(
             self, lower_limit, name=''):
         """Initialize."""
-        Condition.__init__(self, lower_limit, name)
+        super().__init__(lower_limit, name)
         self.lower_limit, self.lower_limit_is_inclusive = try_get_limit(
             lower_limit)
         self.evaluator_type = LowerLimitEvaluator
@@ -386,7 +382,7 @@ class UpperLimitCondition(Condition):
     def __init__(
             self, upper_limit, name=''):
         """Initialize."""
-        Condition.__init__(self, upper_limit, name)
+        super().__init__(upper_limit, name)
         self.upper_limit, self.upper_limit_is_inclusive = try_get_limit(
             upper_limit)
 
@@ -421,7 +417,7 @@ class GreaterThanCondition(Condition):
 
     def __init__(self, value, name=''):
         """Initialize."""
-        Condition.__init__(self, value, name)
+        super().__init__(value, name)
         self.greater_than = value
 
     def __repr__(self):
@@ -434,7 +430,7 @@ class GreaterThanOrEqualToCondition(Condition):
 
     def __init__(self, value, name=''):
         """Initialize."""
-        Condition.__init__(self, value, name)
+        super().__init__(value, name)
         self.greater_than_or_equal_to = value
 
     def __repr__(self):
@@ -448,7 +444,7 @@ class EqualToCondition(Condition):
 
     def __init__(self, value, epsilon, name=''):
         """Initialize."""
-        Condition.__init__(self, value, name)
+        super().__init__(value, name)
         self.equal_to = value
         self.epsilon = epsilon
 
@@ -462,7 +458,7 @@ class NotEqualToCondition(Condition):
 
     def __init__(self, value, name=''):
         """Initialize."""
-        Condition.__init__(self, value, name)
+        super().__init__(value, name)
         self.not_equal_to = value
 
     def __repr__(self):
@@ -475,7 +471,7 @@ class LessThanOrEqualToCondition(Condition):
 
     def __init__(self, value, name=''):
         """Initialize."""
-        Condition.__init__(self, value, name)
+        super().__init__(value, name)
         self.less_than_or_equal_to = value
 
     def __repr__(self):
@@ -488,7 +484,7 @@ class LessThanCondition(Condition):
 
     def __init__(self, value, name=''):
         """Initialize."""
-        Condition.__init__(self, value, name)
+        super().__init__(value, name)
         self.less_than = value
 
     def __repr__(self):

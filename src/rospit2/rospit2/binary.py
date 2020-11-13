@@ -21,8 +21,6 @@
 """Binary conditions."""
 
 
-from abc import ABCMeta, abstractmethod
-
 from .framework import Condition, Evaluation, Evaluator, Measurement, Sensor
 
 
@@ -49,7 +47,7 @@ class BinaryConditionEvaluator(Evaluator):
 
     def __init__(self, sensor):
         """Initialize."""
-        Evaluator.__init__(self, sensor)
+        super().__init__(sensor)
         self.last_measurement_value = None
         self.last_condition_value = None
 
@@ -85,9 +83,9 @@ class StaticBooleanEvaluator(Evaluator):
     def __init__(self, always_true):
         """Initialize."""
         if always_true:
-            Evaluator.__init__(self, AlwaysTrueSensor())
+            super().__init__(AlwaysTrueSensor())
         else:
-            Evaluator.__init__(self, AlwaysFalseSensor())
+            super().__init__(AlwaysFalseSensor())
         self.always_true = always_true
 
     def evaluate_internal(self, condition, measurement=None):
@@ -98,13 +96,10 @@ class StaticBooleanEvaluator(Evaluator):
 class BinarySensor(Sensor):
     """Sensor that returns a binary value."""
 
-    __metaclass__ = ABCMeta
-
     def __init__(self):
         """Initialize."""
-        Sensor.__init__(self)
+        super().__init__()
 
-    @abstractmethod
     def sense_internal(self):
         """Sense internally."""
         pass
@@ -115,7 +110,7 @@ class AlwaysTrueSensor(BinarySensor):
 
     def __init__(self):
         """Initialize."""
-        BinarySensor.__init__(self)
+        super().__init__()
 
     def sense_internal(self):
         """Sense True."""
@@ -127,7 +122,7 @@ class AlwaysFalseSensor(BinarySensor):
 
     def __init__(self):
         """Initialize."""
-        BinarySensor.__init__(self)
+        super().__init__()
 
     def sense_internal(self):
         """Sense False."""
@@ -139,15 +134,13 @@ class BinaryMeasurement(Measurement):
 
     def __init__(self, value):
         """Initialize."""
-        self.value = value
+        super().__init__(value)
 
 
 class BinaryCondition(Condition):
     """Condition that is either True or False."""
 
-    __metaclass__ = ABCMeta
-
     def __init__(self, value, name=''):
         """Initialize."""
-        Condition.__init__(self, value, name)
+        super().__init__(value, name)
         self.value = value

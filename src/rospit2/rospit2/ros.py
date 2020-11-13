@@ -70,6 +70,7 @@ class StringEqualsCondition(Condition):
 
     def __init__(self, value, name=''):
         """Initialize."""
+        super().__init__(value, name)
         self.value = value
         self.name = self.__class__.__name__ if name == '' else name
 
@@ -155,7 +156,7 @@ class ROSTestSuite(TestSuite):
 
     def __init__(self, node, subscribers, name=''):
         """Initialize."""
-        TestSuite.__init__(self, name)
+        super().__init__(name)
         self.node = node
         self.messages = {}
         self.message_received_on = set()
@@ -429,7 +430,7 @@ class MessageReceivedEvaluator(MessageEvaluatorBase):
 
     def __init__(self, node, topic, topic_type, field=None):
         """Initialize."""
-        MessageEvaluatorBase.__init__(self, node, topic, topic_type, field)
+        super().__init__(node, topic, topic_type, field)
 
     def evaluate_internal(self, c, measurement=None):
         """Internally evaluate the message."""
@@ -462,8 +463,7 @@ class MessagesEvaluation(Evaluation):
 
     def expected_actual_string(self):
         """Get an evaluation string."""
-        values = ', '.join(
-            str(measurement.value) for measurement in self.measurements.value)
+        values = ', '.join([str(value) for value in self.measurements.value])
         if self.occurrence == Occurrence.ONCE:
             return '{} in [{}]'.format(
                 self.condition.value,
@@ -498,7 +498,7 @@ class MessageEvaluator(MessageEvaluatorBase):
     def __init__(
             self, node, topic, topic_type, field=None):
         """Initialize."""
-        MessageEvaluatorBase.__init__(self, node, topic, topic_type, field)
+        super().__init__(node, topic, topic_type, field)
 
     def evaluate_internal(self, condition, measurement=None):
         """Internally evaluate the message."""
@@ -510,14 +510,14 @@ class MessageEvaluator(MessageEvaluatorBase):
         return Evaluation(measurement, condition, self.data == condition.value)
 
 
-class MessagesEvaluator(MessageEvaluatorBase):
+class MessagesEvaluator(MessagesEvaluatorBase):
     """Evaluate the content of multiple messages."""
 
     def __init__(
             self, node, topic, topic_type, occurrence,
             negate=False, field=None):
         """Initialize."""
-        MessageEvaluatorBase.__init__(self, node, topic, topic_type, field)
+        super().__init__(node, topic, topic_type, field)
         self.occurrence = occurrence
         self.negate = negate
 
@@ -572,6 +572,7 @@ class ExecutionReturnedEvaluator(Evaluator):
 
     def __init__(self, test_case, field=None):
         """Initialize."""
+        super().__init__(None)
         self.test_case = test_case
         self.field = field
 
@@ -696,7 +697,7 @@ class NumericMessageEvaluator(MessageEvaluatorBase):
     def __init__(
             self, node, topic, topic_type, field=None):
         """Initialize."""
-        MessageEvaluatorBase.__init__(self, node, topic, topic_type, field)
+        super().__init__(node, topic, topic_type, field)
 
     def evaluate_internal(self, condition, measurement=None):
         """Internally evaluate the numeric message."""
@@ -794,7 +795,7 @@ class Publish(Step):
                  qos_durability_str='system_default',
                  save_result=False):
         """Publish a message to a topic."""
-        Step.__init__(self, save_result)
+        super().__init__(save_result)
         self.node = node
         self.topic = topic
         self.msg_type = msg_type
@@ -845,7 +846,7 @@ class ServiceCall(Step):
     def __init__(self, node, service, service_type,
                  parameters=None, save_result=False):
         """Call a ROS Service."""
-        Step.__init__(self, save_result)
+        super().__init__(save_result)
         if parameters is None:
             parameters = {}
         self.node = node
@@ -865,7 +866,7 @@ class Sleep(Step):
 
     def __init__(self, time, unit='second'):
         """Initialize."""
-        Step.__init__(self, False)
+        super().__init__(False)
         if unit == 'second' or unit == 'seconds':
             self.time = time
         elif unit == 'minute' or unit == 'minutes':

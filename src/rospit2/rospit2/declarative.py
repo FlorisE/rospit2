@@ -21,8 +21,6 @@
 """Declarative framework for specifying tests."""
 
 
-from abc import ABCMeta, abstractmethod
-
 from .framework import InvariantFailedException, TestCase
 
 
@@ -38,8 +36,8 @@ class DeclarativeTestCase(TestCase):
                  postconditions=None, wait_for_preconditions=False,
                  sleep_rate=0.1, depends_on=None):
         """Initialize."""
-        TestCase.__init__(
-            self, name, preconditions, invariants, postconditions,
+        super().__init__(
+            name, preconditions, invariants, postconditions,
             wait_for_preconditions, sleep_rate, depends_on)
         if set_up_steps is None:
             set_up_steps = []
@@ -75,13 +73,10 @@ class DeclarativeTestCase(TestCase):
 class Step(object):
     """Step that can be used in the set up, run or tear down."""
 
-    __metaclass__ = ABCMeta
-
     def __init__(self, save_result=False):
         """Initialize."""
         self.save_result = save_result
 
-    @abstractmethod
     def execute(self):
         """Execute the step."""
         pass
@@ -96,7 +91,7 @@ class DummyStep(Step):
 
     def __init__(self, save_result=False):
         """Initialize."""
-        Step.__init__(self, save_result)
+        super().__init__(save_result)
 
     def execute(self):
         """Execute the step."""

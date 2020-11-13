@@ -20,7 +20,6 @@
 
 """Evaluators for whether a value is in a specific category."""
 
-from abc import ABCMeta, abstractmethod
 
 from .framework import Condition, Evaluation, Evaluator, Measurement, Sensor
 
@@ -30,7 +29,7 @@ class InCategoryConditionEvaluator(Evaluator):
 
     def __init__(self, sensor):
         """Initialize."""
-        Evaluator.__init__(self, sensor)
+        super().__init__(sensor)
 
     def evaluate_internal(self, condition, measurement=None):
         """
@@ -48,13 +47,10 @@ class InCategoryConditionEvaluator(Evaluator):
 class CategorySensor(Sensor):
     """Sensor that returns a categorical value."""
 
-    __metaclass__ = ABCMeta
-
     def __init__(self):
         """Initialize."""
-        Sensor.__init__(self)
+        super().__init__()
 
-    @abstractmethod
     def sense_internal(self):
         """Sense internally."""
         pass
@@ -65,17 +61,16 @@ class CategoryMeasurement(Measurement):
 
     def __init__(self, category):
         """Initialize."""
+        super().__init__(category)
         self.category = category
 
 
 class InCategoriesCondition(Condition):
     """Condition that a value is within a list of accepted values."""
 
-    __metaclass__ = ABCMeta
-
     def __init__(self, categories=None, name=''):
         """Initialize."""
-        Condition.__init__(self, name)
+        super().__init__(name)
         if categories is None:
             categories = set()
         self.categories = categories
