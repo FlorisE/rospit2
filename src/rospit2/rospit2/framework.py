@@ -53,19 +53,29 @@ def get_active_test_suite():
     """
     Return the test suite that was last ran.
 
-    >>> get_active_test_suite()
-    "Hello"
+    >>> get_active_test_suite() is None
+    True
     """
     return TEST_RUNNER_STATE.test_suite
 
 
 def get_active_test_case():
-    """Return the test case that was last ran."""
+    """
+    Return the test case that was last ran.
+
+    >>> get_active_test_case() is None
+    True
+    """
     return TEST_RUNNER_STATE.test_case
 
 
 def get_logger():
-    """Return the logger that was passed to the test runner."""
+    """
+    Return the logger that was passed to the test runner.
+
+    >>> get_logger() is None
+    True
+    """
     return TEST_RUNNER_STATE.logger
 
 
@@ -74,8 +84,16 @@ COLOR_RED = '\033[91m'
 RESET_FORMATTING = '\033[0m'
 
 
-def status_message_from_boolean(value):
-    """From a boolean value, return the status message."""
+def status_message_from_report(value):
+    """
+    From a test case report, return the status message.
+
+    >>> passed_string = COLOR_GREEN + 'PASSED' + RESET_FORMATTING
+    >>> test_case = TestCase("test_case")
+    >>> report = TestCaseReport(test_case)
+    >>> status_message_from_report(report) == passed_string
+    True
+    """
     if value.passed:
         return COLOR_GREEN + 'PASSED' + RESET_FORMATTING
     return COLOR_RED + 'FAILED (%s)' % value.failure_type + RESET_FORMATTING
@@ -99,7 +117,7 @@ class Runner(object):
         self.last_suite = test_suite
         test_suite_report = test_suite.run(self.logger)
         for test_case_report in test_suite_report.test_case_reports:
-            status_msg = status_message_from_boolean(test_case_report)
+            status_msg = status_message_from_report(test_case_report)
             self.logger.info(
                 '%s: %s', test_case_report.test_case.name, status_msg)
 
@@ -312,13 +330,26 @@ class TestCaseReport(object):
 
     def __init__(self, test_case, preconditions=None, invariants=None,
                  postconditions=None, not_passed_dependencies=None):
-        """Initialize."""
+        """
+        Initialize.
+
+        >>> test_case = TestCase('test_case')
+        >>> report = TestCaseReport(test_case)
+        >>> report.preconditions_nominal
+        True
+        >>> report.invariants_nominal
+        True
+        >>> report.postconditions_nominal
+        True
+        >>> report.passed
+        True
+        """
         if preconditions is None:
-            preconditions = []
+            preconditions = {}
         if invariants is None:
-            invariants = []
+            invariants = {}
         if postconditions is None:
-            postconditions = []
+            postconditions = {}
         if not_passed_dependencies is None:
             not_passed_dependencies = []
         self.test_case = test_case
