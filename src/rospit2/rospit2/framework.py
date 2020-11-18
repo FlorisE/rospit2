@@ -89,7 +89,8 @@ def status_message_from_report(value):
     From a test case report, return the status message.
 
     >>> passed_string = COLOR_GREEN + 'PASSED' + RESET_FORMATTING
-    >>> test_case = TestCase("test_case")
+    >>> test_suite = TestSuite('test_suite')
+    >>> test_case = TestCase(test_suite, 'test_case')
     >>> report = TestCaseReport(test_case)
     >>> status_message_from_report(report) == passed_string
     True
@@ -143,8 +144,12 @@ class TestSuite(object):
         TEST_RUNNER_STATE.test_suite = self
         TEST_RUNNER_STATE.logger = logger
         logger.info('Running test suite {}'.format(self.name))
-        test_case_reports = [tc.execute(logger) for tc in self.test_cases]
+        test_case_reports = self._run(logger)
         return TestSuiteReport(self, test_case_reports)
+
+    def _run(self, logger):
+        """Run implementation."""
+        return [tc.execute(logger) for tc in self.test_cases]
 
 
 def get_failed_conditions(conditions):
@@ -180,10 +185,12 @@ def all_conditions_nominal(conditions):
 class TestCase(object):
     """A test case with preconditions, invariants and postconditions."""
 
-    def __init__(self, name='', preconditions=None, invariants=None,
-                 postconditions=None, wait_for_preconditions=False,
-                 sleep_rate=0.1, depends_on=None):
+    def __init__(
+            self, test_suite, name='',
+            preconditions=None, invariants=None, postconditions=None,
+            wait_for_preconditions=False, sleep_rate=0.1, depends_on=None):
         """Initialize."""
+        self.test_suite = test_suite
         self.name = name
         if preconditions is None:
             preconditions = []
@@ -236,8 +243,6 @@ class TestCase(object):
 
         TEST_RUNNER_STATE.test_case = self
 
-        self.set_up()
-
         not_passed_dependencies = [
             tc for tc in self.depends_on if not tc.ran or not tc.report.passed]
 
@@ -247,6 +252,11 @@ class TestCase(object):
             logger.info(
                 'Dependencies have not been met, marking test case as failure')
             report = self.finish([], [], not_passed_dependencies)
+
+        # execute shared set up steps from the test suite
+        self.test_suite.set_up()
+
+        self.set_up()
 
         if report is None:
             logger.info('Evaluating preconditions')
@@ -290,6 +300,8 @@ class TestCase(object):
             self, preconditions_evaluation, self.invariants_evaluations,
             postconditions_evaluation, not_passed_dependencies)
         self.tear_down()
+        # execute shared tear down steps from the test suite
+        self.test_suite.tear_down()
         return self.report
 
     def start_invariant_monitoring(self):
@@ -333,7 +345,8 @@ class TestCaseReport(object):
         """
         Initialize.
 
-        >>> test_case = TestCase('test_case')
+        >>> test_suite = TestSuite('test_suite')
+        >>> test_case = TestCase(test_suite, 'test_case')
         >>> report = TestCaseReport(test_case)
         >>> report.preconditions_nominal
         True

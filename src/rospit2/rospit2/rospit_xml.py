@@ -116,8 +116,9 @@ class SubscriberFactory(object):
         self.msg_value_subscribers = []
         self.msg_received_subscribers = []
         self.message_received_on = set()
-        for test_case_elem in root.getchildren():
-            self.parse_test_case(test_case_elem)
+        for elem in root.getchildren():
+            if elem.tag == with_ns('TestCase'):
+                self.parse_test_case(elem)
 
     def parse_test_case(self, elem):
         """Parse a test case."""
@@ -227,22 +228,43 @@ class Parser(object):
         self.test_suite = ROSTestSuite(
             self.node, self.subs, self.root.attrib['name'])
         for child in self.root.getchildren():
-            self.last_test_case = self.get_test_case_from_xml_element(child)
-            self.test_suite.test_cases.append(self.last_test_case)
+            name = child.tag
+            if name == with_ns('OneTimeSetUp'):
+                for step in child.getchildren():
+                    self.test_suite.one_time_set_up_steps.append(
+                        self.get_step_from_xml_element(step))
+            elif name == with_ns('SetUp'):
+                for step in child.getchildren():
+                    self.test_suite.set_up_steps.append(
+                        self.get_step_from_xml_element(step))
+            elif name == with_ns('TestCase'):
+                self.last_test_case = self.get_test_case_from_xml_elem(child)
+                self.test_suite.test_cases.append(self.last_test_case)
+            elif name == with_ns('TearDown'):
+                for step in child.getchildren():
+                    self.test_suite.tear_down_steps.append(
+                        self.get_step_from_xml_element(step))
+            elif name == with_ns('OneTimeTearDown'):
+                for step in child.getchildren():
+                    self.test_suite.one_time_tear_down_steps.append(
+                        self.get_step_from_xml_element(step))
         return self.test_suite
 
-    def get_test_case_from_xml_element(self, element):
+    def get_test_case_from_xml_elem(self, element):
         """Get test case from element."""
         wait_for_preconditions = get_bool(
             element.attrib.get('wait_for_preconditions', 'false'))
         depends_on_previous = get_bool(
             element.attrib.get('depends_on_previous', 'false'))
         depends_on = [self.last_test_case] if depends_on_previous else None
+
+        # initialize and then update, so we can set current_test_case already
         test_case = ROSDeclarativeTestCase(
             self.test_suite, name=element.attrib['name'],
             wait_for_preconditions=wait_for_preconditions,
             depends_on=depends_on)
         self.current_test_case = test_case
+
         for child in element.getchildren():
             name = child.tag
             if name == with_ns('SetUp'):

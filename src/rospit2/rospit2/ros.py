@@ -45,9 +45,9 @@ from rospit_msgs.msg import Condition as ConditionMessage, \
                             TestSuiteReport as TestSuiteReportMessage
 
 from .binary import BinaryMeasurement
-from .declarative import DeclarativeTestCase, Step
-from .framework import Condition, Evaluation, Evaluator, Measurement, \
-                       Measurements, TestSuite
+from .declarative import DeclarativeTestCase, DeclarativeTestSuite, Step
+from .framework import Condition, Evaluation, Evaluator, \
+                       Measurement, Measurements
 from .numeric import BothLimitsCondition, BothLimitsEvaluator, \
                      EqualToCondition, EqualToEvaluator, \
                      GreaterThanCondition, GreaterThanEvaluator, \
@@ -151,12 +151,17 @@ class SubscriptionManager(object):
                         self.initialized_subscribers[topic]
 
 
-class ROSTestSuite(TestSuite):
+class ROSTestSuite(DeclarativeTestSuite):
     """A ROS specific test suite."""
 
-    def __init__(self, node, subscribers, name=''):
+    def __init__(
+            self, node, subscribers, name='',
+            set_up_steps=None, tear_down_steps=None,
+            one_time_set_up_steps=None, one_time_tear_down_steps=None):
         """Initialize."""
-        super().__init__(name)
+        super().__init__(
+            name, set_up_steps, tear_down_steps,
+            one_time_set_up_steps, one_time_tear_down_steps)
         self.node = node
         self.messages = {}
         self.message_received_on = set()
@@ -198,9 +203,18 @@ class ROSDeclarativeTestCase(DeclarativeTestCase):
                  wait_for_preconditions=False,
                  sleep_rate=0.1, depends_on=None):
         """Initialize."""
-        super().__init__(run_steps, set_up_steps, tear_down_steps, name,
-                         preconditions, invariants, postconditions,
-                         wait_for_preconditions, sleep_rate, depends_on)
+        super().__init__(
+            test_suite,
+            name=name,
+            set_up_steps=set_up_steps,
+            preconditions=preconditions,
+            wait_for_preconditions=wait_for_preconditions,
+            run_steps=run_steps,
+            invariants=invariants,
+            postconditions=postconditions,
+            tear_down_steps=tear_down_steps,
+            sleep_rate=sleep_rate,
+            depends_on=depends_on)
         self.test_suite = test_suite
         self.subscribers = []
         self.subscription_manager = test_suite.subscription_manager

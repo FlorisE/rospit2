@@ -5,7 +5,11 @@
   <xs:element name="TestSuite" type="rospit:TestSuiteType" />
   <xs:complexType name="TestSuiteType">
     <xs:sequence>
+      <xs:element name="OneTimeSetUp" type="rospit:SetUpType" minOccurs="0" />
+      <xs:element name="SetUp" type="rospit:SetUpType" minOccurs="0" />
       <xs:element name="TestCase" type="rospit:TestCaseType" minOccurs="1" maxOccurs="unbounded" />
+      <xs:element name="TearDown" type="rospit:TearDownType" minOccurs="0" />
+      <xs:element name="OneTimeTearDown" type="rospit:TearDownType" minOccurs="0" />
     </xs:sequence>
     <xs:attribute name="name" type="xs:string" />
   </xs:complexType>

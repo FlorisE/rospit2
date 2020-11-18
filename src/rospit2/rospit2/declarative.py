@@ -21,7 +21,60 @@
 """Declarative framework for specifying tests."""
 
 
-from .framework import InvariantFailedException, TestCase
+from .framework import InvariantFailedException, TestCase, TestSuite
+
+
+class DeclarativeTestSuite(TestSuite):
+    """
+    A test suite that declares how it should be executed.
+
+    Can be used in for example scripting environments for creating test suites.
+    """
+
+    def __init__(
+            self, name='', set_up_steps=None, tear_down_steps=None,
+            one_time_set_up_steps=None, one_time_tear_down_steps=None):
+        """Initialize."""
+        super().__init__(name)
+        if set_up_steps is None:
+            set_up_steps = []
+        if tear_down_steps is None:
+            tear_down_steps = []
+        if one_time_set_up_steps is None:
+            one_time_set_up_steps = []
+        if one_time_tear_down_steps is None:
+            one_time_tear_down_steps = []
+        self.set_up_steps = set_up_steps
+        self.tear_down_steps = tear_down_steps
+        self.one_time_set_up_steps = one_time_set_up_steps
+        self.one_time_tear_down_steps = one_time_tear_down_steps
+
+    def one_time_set_up(self):
+        """Set up test suite, executed once per test suite execution."""
+        for step in self.one_time_set_up_steps:
+            step.execute()
+
+    def set_up(self):
+        """Set up test suite, re-executed for each test case execution."""
+        for step in self.set_up_steps:
+            step.execute()
+
+    def _run(self, logger):
+        """Run implementation, adds set up steps/tear down steps."""
+        self.one_time_set_up()
+        results = super()._run(logger)
+        self.one_time_tear_down()
+        return results
+
+    def tear_down(self):
+        """Tear down test suite, re-executed for each test case execution."""
+        for step in self.tear_down_steps:
+            step.execute()
+
+    def one_time_tear_down(self):
+        """Tear down test suite, executed once per test suite execution."""
+        for step in self.one_time_tear_down_steps:
+            step.execute()
 
 
 class DeclarativeTestCase(TestCase):
@@ -31,13 +84,15 @@ class DeclarativeTestCase(TestCase):
     Can be used in for example scripting environments for creating test cases.
     """
 
-    def __init__(self, run_steps=None, set_up_steps=None, tear_down_steps=None,
-                 name='', preconditions=None, invariants=None,
-                 postconditions=None, wait_for_preconditions=False,
-                 sleep_rate=0.1, depends_on=None):
+    def __init__(
+            self, test_suite, name='',
+            set_up_steps=None, run_steps=None, tear_down_steps=None,
+            preconditions=None, invariants=None,
+            postconditions=None, wait_for_preconditions=False,
+            sleep_rate=0.1, depends_on=None):
         """Initialize."""
         super().__init__(
-            name, preconditions, invariants, postconditions,
+            test_suite, name, preconditions, invariants, postconditions,
             wait_for_preconditions, sleep_rate, depends_on)
         if set_up_steps is None:
             set_up_steps = []
