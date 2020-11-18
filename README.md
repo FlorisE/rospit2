@@ -20,6 +20,30 @@ The rospit2 package contains:
 * The `run_tests.py` script that starts a test runner.
 
 A major component of ROSPIT2 is the XML specification for test suites, for which a schema can be found [here](src/rospit2/rospit2/xml/rospit.xsd).
+`framework.py` contains a low level testing framework, mostly similar to frameworks such as JUnit or xUnit, but with the addition of pre- and post-conditions and invariants.
+Conditions can be binary, categorical or numeric, defined in `binary.py`, `category.py` and `numeric.py`, respectively.
+`declarative.py` contains an abstraction of the testing framework that allows high level tools to define test execution using `Step` building blocks.
+`rospit_xml.py` contains a parser for tests conforming to this schema.
+`ros.py` contains an executor for the parsed tests and an implementation of various ROS specific `Steps` and `Conditions`.
+
+### Execution flow
+
+The top level element is a test suite. Execution of a test suite proceeds as follows:
+
+- Execute one time set up steps for test suite.
+  - Execute each test case.
+- Execute one time tear down steps for test suite.
+
+Test case execution proceeds as follows:
+
+- If `depends_on_previous` has been set for the test case, check if execution of previous test case was nominal.
+- Execute (shared) set up steps declared by the test suite.
+- Execute set up steps declared by the test case.
+- Evaluate preconditions declared by the test case, if any is invalid, block if `wait_for_preconditions` is set, else terminate.
+- Execute run steps declared by the test case, while in parallel monitoring invariants (conditions on topic messages).
+- Evaluate postconditions declared by the test case.
+- Execute tear down steps declared by the test case.
+- Execute (shared) tear down steps declared by the test suite.
 
 ### How to run the turlesim example
 A simple example test script is included. Follow these instructions to run it:
