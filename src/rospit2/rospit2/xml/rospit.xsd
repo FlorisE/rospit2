@@ -242,6 +242,17 @@
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
+  <xs:complexType name="Launch">
+    <xs:complexContent>
+      <xs:extension base="rospit:ExecutableItemType">
+        <xs:attribute name="package_name" type="xs:string" />
+        <xs:attribute name="launch_file_name" type="xs:string" />
+        <xs:attribute name="launch_arguments" type="xs:string" />
+        <xs:attribute name="debug" type="xs:boolean" />
+        <xs:attribute name="show_all_subprocess_outputs" type="xs:boolean" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
   <xs:complexType name="Message">
     <xs:sequence>
       <xs:element name="Parameter" type="rospit:ParameterType" minOccurs="0" maxOccurs="unbounded" />

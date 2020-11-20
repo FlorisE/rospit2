@@ -21,14 +21,28 @@
 """ROS specific implementation of the testing framework."""
 
 
+import asyncio
 import importlib
+import os
+import threading
 import time
 from enum import Enum, auto
+from multiprocessing import Pipe, Process
+
+from ament_index_python.packages import PackageNotFoundError
+from ament_index_python.packages import get_package_prefix
+
+from launch import LaunchDescription, LaunchService
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import AnyLaunchDescriptionSource
 
 import rclpy
 from rclpy.action import ActionServer
 from rclpy.duration import Duration
 from rclpy.node import Node
+
+from ros2launch.api import MultipleLaunchFilesError
+from ros2launch.api import get_share_file_path_from_package
 
 from ros2topic.api import qos_profile_from_short_keys
 
@@ -852,6 +866,110 @@ class Publish(Step):
         self.node.destroy_publisher(pub)
 
         return True
+
+
+class LaunchArgs:
+    """Arguments for launching a ROS system."""
+
+    def __init__(
+            self, package_name, launch_file_name, launch_arguments, debug,
+            print_, show_args, show_all_subprocesses_output):
+        """Initialize."""
+        self.package_name = package_name
+        self.launch_file_name = launch_file_name
+        self.launch_arguments = launch_arguments
+        self.debug = debug
+        self.print = print_
+        self.show_args = show_args
+        self.show_all_subprocesses_output = show_all_subprocesses_output
+
+
+def launch(
+        shutdown_pipe,
+        package_name, launch_file_name, launch_arguments, debug):
+    """Launch a ROS system."""
+    asyncio.set_event_loop(asyncio.new_event_loop())
+    # based on ros2launch/command/launch.py:main
+    if package_name is None:
+        single_file = True
+    else:
+        single_file = False
+        get_package_prefix(package_name)
+
+    path = None
+    launch_arguments = []
+    if single_file:
+        if os.path.exists(package_name):
+            path = package_name
+        else:
+            raise ValueError(package_name)
+        if launch_file_name is not None:
+            launch_arguments.append(launch_file_name)
+    else:
+        try:
+            path = get_share_file_path_from_package(
+                package_name=package_name,
+                file_name=launch_file_name)
+        except PackageNotFoundError as exc:
+            raise RuntimeError(
+                "Package '{}' not found: {}".format(
+                    package_name, exc))
+        except (FileNotFoundError, MultipleLaunchFilesError) as exc:
+            raise RuntimeError(str(exc))
+    launch_arguments.extend(launch_arguments)
+    launch_service = LaunchService(argv=launch_arguments, debug=debug)
+    launch_description = LaunchDescription([
+        IncludeLaunchDescription(
+            AnyLaunchDescriptionSource(
+                path
+            ),
+            launch_arguments={},
+        ),
+    ])
+    launch_service.include_launch_description(launch_description)
+    finished = False
+
+    def shutdown():
+        while not finished and not shutdown_pipe.poll(1):
+            pass
+        launch_service.shutdown()
+
+    t = threading.Thread(target=shutdown)
+    t.start()
+    launch_service.run(shutdown_when_idle=True)
+    finished = True
+    t.join()
+
+
+class Launch(Step):
+    """Run a ROS launch file."""
+
+    def __init__(
+            self,
+            package_name=None,
+            launch_file_name=None,
+            launch_arguments=[],
+            debug=False):
+        """Initialize."""
+        self.package_name = package_name
+        self.launch_file_name = launch_file_name
+        self.launch_arguments = launch_arguments
+        self.debug = debug
+        self.process = None
+
+    def execute(self):
+        """Launch it."""
+        self.parent_shutdown, child_shutdown = Pipe()
+        self.process = Process(
+            target=launch, args=(
+                child_shutdown, self.package_name, self.launch_file_name,
+                self.launch_arguments, self.debug))
+        self.process.start()
+
+    def clean_up(self):
+        """Clean up the step."""
+        self.parent_shutdown.send(True)
+        self.process.join()
 
 
 class ServiceCall(Step):

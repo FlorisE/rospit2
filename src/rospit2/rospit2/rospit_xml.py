@@ -40,6 +40,7 @@ from .numeric import BothLimitsCondition, \
                      NotEqualToCondition, \
                      UpperLimitCondition
 from .ros import ExecutionReturnedEvaluator, \
+                 Launch, \
                  MessageEvaluator, \
                  MessageReceivedEvaluator, \
                  MessagesEvaluator, \
@@ -345,6 +346,26 @@ class Parser(object):
             return Sleep(
                 element.attrib['duration'],
                 element.attrib.get('unit', 'second'))
+        elif elem_type == 'Launch':
+            try:
+                package_name = element.attrib['package_name']
+            except KeyError:
+                package_name = None
+            try:
+                launch_file_name = element.attrib['launch_file_name']
+            except KeyError:
+                launch_file_name = None
+            try:
+                launch_arguments = element.attrib['launch_arguments']
+            except KeyError:
+                launch_arguments = []
+            try:
+                debug = element.attrib['debug']
+            except KeyError:
+                debug = False
+
+            return Launch(
+                package_name, launch_file_name, launch_arguments, debug)
         else:
             raise Exception('Unidenfied step {}'.format(elem_type))
 

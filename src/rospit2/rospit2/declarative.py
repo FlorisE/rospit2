@@ -76,6 +76,11 @@ class DeclarativeTestSuite(TestSuite):
         for step in self.one_time_tear_down_steps:
             step.execute()
 
+    def clean_up(self):
+        """Clean up the execution."""
+        for step in self.one_time_set_up_steps + self.one_time_tear_down_steps:
+            step.clean_up()
+
 
 class DeclarativeTestCase(TestCase):
     """
@@ -124,6 +129,16 @@ class DeclarativeTestCase(TestCase):
         for step in self.tear_down_steps:
             step.execute()
 
+    def clean_up(self):
+        """Clean up all executed steps."""
+        for step in \
+                self.test_suite.set_up_steps + \
+                self.set_up_steps + \
+                self.run_steps + \
+                self.tear_down_steps + \
+                self.test_suite.tear_down_steps:
+            step.clean_up()
+
 
 class Step(object):
     """Step that can be used in the set up, run or tear down."""
@@ -134,6 +149,10 @@ class Step(object):
 
     def execute(self):
         """Execute the step."""
+        pass
+
+    def clean_up(self):
+        """Clean up the step."""
         pass
 
     def __call__(self):

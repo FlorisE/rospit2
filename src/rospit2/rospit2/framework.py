@@ -145,11 +145,16 @@ class TestSuite(object):
         TEST_RUNNER_STATE.logger = logger
         logger.info('Running test suite {}'.format(self.name))
         test_case_reports = self._run(logger)
+        self.clean_up()
         return TestSuiteReport(self, test_case_reports)
 
     def _run(self, logger):
         """Run implementation."""
         return [tc.execute(logger) for tc in self.test_cases]
+
+    def clean_up(self):
+        """Clean up the execution."""
+        pass
 
 
 def get_failed_conditions(conditions):
@@ -290,6 +295,10 @@ class TestCase(object):
 
         return report
 
+    def clean_up(self):
+        """Clean up all executed steps."""
+        pass
+
     def finish(self, preconditions_evaluation, postconditions_evaluation,
                not_passed_dependencies=None):
         """Finish executing the test case."""
@@ -302,6 +311,7 @@ class TestCase(object):
         self.tear_down()
         # execute shared tear down steps from the test suite
         self.test_suite.tear_down()
+        self.clean_up()
         return self.report
 
     def start_invariant_monitoring(self):
