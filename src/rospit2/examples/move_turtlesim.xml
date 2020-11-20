@@ -1,12 +1,8 @@
 <TestSuite xmlns="https://www.aist.go.jp/rospit" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Move turtlesim">
-  <OneTimeSetUp>
-    <Step xsi:type="Run" package_name="turtlesim" executable_name="turtlesim_node" blocking="false" />
-    <Step xsi:type="Sleep" duration="5" />
-  </OneTimeSetUp>
   <TestCase name="MoveUp">
     <SetUp>
-      <Step xsi:type="ServiceCall" service="/reset" type="std_srvs/srv/Empty" />
-      <Step xsi:type="Sleep" duration="1" />
+      <Step xsi:type="Run" package_name="turtlesim" executable_name="turtlesim_node" blocking="false" />
+      <Step xsi:type="Sleep" duration="3" />
     </SetUp>
     <Preconditions>
       <Precondition>
@@ -40,8 +36,5 @@
         <Evaluator xsi:type="NumericMessagesEvaluator" topic="/turtle1/pose" field="y" type="turtlesim/msg/Pose" />
       </Postcondition>
     </Postconditions>
-    <TearDown>
-      <Step xsi:type="ServiceCall" service="/reset" type="std_srvs/srv/Empty" />
-    </TearDown>
   </TestCase>
 </TestSuite>
