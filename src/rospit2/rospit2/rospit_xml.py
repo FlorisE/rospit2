@@ -40,21 +40,22 @@ from .numeric import BothLimitsCondition, \
                      NotEqualToCondition, \
                      UpperLimitCondition
 from .ros import ExecutionReturnedEvaluator, \
-                 Launch, \
                  MessageEvaluator, \
                  MessageReceivedEvaluator, \
                  MessagesEvaluator, \
                  NumericMessageEvaluator, \
                  NumericMessagesEvaluator, \
                  Occurrence, \
-                 Publish, \
                  ROSDeclarativeTestCase, \
                  ROSTestSuite, \
-                 ServiceCall, \
-                 Sleep, \
-                 StaticValue, \
-                 StringEqualsCondition, \
-                 TopicValue
+                 StringEqualsCondition
+from .ros_steps import Launch, \
+                       Publish, \
+                       Run, \
+                       ServiceCall, \
+                       Sleep, \
+                       StaticValue, \
+                       TopicValue
 
 NS = '{https://www.aist.go.jp/rospit}'
 XSI_TYPE = '{http://www.w3.org/2001/XMLSchema-instance}type'
@@ -322,30 +323,6 @@ class Parser(object):
         elem_type = element.attrib[XSI_TYPE]
         if elem_type == 'Dummy':
             return DummyStep()
-        elif elem_type == 'ServiceCall':
-            if len(element) > 0:
-                parameters = self.get_parameters(element[0])
-            else:
-                parameters = {}
-            save_result = get_bool(element.attrib.get('save_result', 'false'))
-            return ServiceCall(
-                self.node, element.attrib['service'], element.attrib['type'],
-                parameters, save_result=save_result)
-        elif elem_type == 'Publish':
-            topic = element.attrib.get('topic')
-            msg_type = element.attrib.get('type')
-            duration = float(element.attrib.get('duration'))
-            rate = int(element.attrib.get('rate'))
-            if len(element) > 0:
-                parameters = self.get_parameters(element[0])
-            else:
-                parameters = {}
-            return Publish(
-                self.node, topic, msg_type, duration, rate, parameters)
-        elif elem_type == 'Sleep':
-            return Sleep(
-                element.attrib['duration'],
-                element.attrib.get('unit', 'second'))
         elif elem_type == 'Launch':
             try:
                 package_name = element.attrib['package_name']
@@ -366,6 +343,45 @@ class Parser(object):
 
             return Launch(
                 package_name, launch_file_name, launch_arguments, debug)
+        elif elem_type == 'Publish':
+            topic = element.attrib.get('topic')
+            msg_type = element.attrib.get('type')
+            duration = float(element.attrib.get('duration'))
+            rate = int(element.attrib.get('rate'))
+            if len(element) > 0:
+                parameters = self.get_parameters(element[0])
+            else:
+                parameters = {}
+            return Publish(
+                self.node, topic, msg_type, duration, rate, parameters)
+        elif elem_type == 'Run':
+            try:
+                arguments = element.attrib['arguments']
+            except KeyError:
+                arguments = None
+            try:
+                blocking = element.attrib['blocking']
+                blocking = get_bool(blocking)
+            except KeyError:
+                blocking = False
+            return Run(
+                element.attrib['package_name'],
+                element.attrib['executable_name'],
+                arguments,
+                blocking)
+        elif elem_type == 'ServiceCall':
+            if len(element) > 0:
+                parameters = self.get_parameters(element[0])
+            else:
+                parameters = {}
+            save_result = get_bool(element.attrib.get('save_result', 'false'))
+            return ServiceCall(
+                self.node, element.attrib['service'], element.attrib['type'],
+                parameters, save_result=save_result)
+        elif elem_type == 'Sleep':
+            return Sleep(
+                element.attrib['duration'],
+                element.attrib.get('unit', 'second'))
         else:
             raise Exception('Unidenfied step {}'.format(elem_type))
 

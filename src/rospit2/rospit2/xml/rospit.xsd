@@ -253,6 +253,16 @@
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
+  <xs:complexType name="Run">
+    <xs:complexContent>
+      <xs:extension base="rospit:ExecutableItemType">
+        <xs:attribute name="package_name" type="xs:string" use="required" />
+        <xs:attribute name="executable_name" type="xs:string" use="required" />
+        <xs:attribute name="arguments" type="xs:string" />
+        <xs:attribute name="blocking" type="xs:boolean" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
   <xs:complexType name="Message">
     <xs:sequence>
       <xs:element name="Parameter" type="rospit:ParameterType" minOccurs="0" maxOccurs="unbounded" />
