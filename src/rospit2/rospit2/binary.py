@@ -140,7 +140,19 @@ class BinaryMeasurement(Measurement):
 class BinaryCondition(Condition):
     """Condition that is either True or False."""
 
-    def __init__(self, value, name=''):
+    def __init__(self, value=None, retrieve_value=None, name=''):
         """Initialize."""
-        super().__init__(value, name)
-        self.value = value
+        if value is None:
+            if retrieve_value is None:
+                raise RuntimeError(
+                    'Either value or retrieve_value has to be specified')
+            super().__init__(name=name)
+        else:
+            super().__init__(value=value, name=name)
+
+        self.retrieve_value = retrieve_value
+
+    @property
+    def value(self):
+        """Get the value."""
+        return self._value or self.retrieve_value()

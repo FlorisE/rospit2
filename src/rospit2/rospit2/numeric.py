@@ -62,9 +62,9 @@ class LowerLimitEvaluator(Evaluator):
         assert(isinstance(measurement, NumericMeasurement))
 
         if condition.lower_limit_is_inclusive:
-            nominal = measurement.value >= condition.lower_limit
+            nominal = measurement.value >= condition.value
         else:
-            nominal = measurement.value > condition.lower_limit
+            nominal = measurement.value > condition.value
 
         return Evaluation(measurement, condition, nominal)
 
@@ -85,9 +85,9 @@ class UpperLimitEvaluator(Evaluator):
         assert(isinstance(measurement, NumericMeasurement))
 
         if condition.upper_limit_is_inclusive:
-            nominal = measurement.value <= condition.upper_limit
+            nominal = measurement.value <= condition.value
         else:
-            nominal = measurement.value < condition.upper_limit
+            nominal = measurement.value < condition.value
 
         return Evaluation(measurement, condition, nominal)
 
@@ -114,9 +114,9 @@ class BothLimitsEvaluator(LowerLimitEvaluator, UpperLimitEvaluator):
         assert(isinstance(measurement, NumericMeasurement))
 
         lower_limit_eval = LowerLimitEvaluator.evaluate_internal(
-            self, condition, measurement)
+            self, condition.lower_limit, measurement)
         upper_limit_eval = UpperLimitEvaluator.evaluate_internal(
-            self, condition, measurement)
+            self, condition.upper_limit, measurement)
 
         return CompositeEvaluation(
             measurement, condition,
@@ -318,6 +318,7 @@ class NumericMeasurement(Measurement):
 
 
 Limit = namedtuple('Limit', 'limit is_inclusive')
+Range = namedtuple('Range', 'lower upper')
 
 
 def get_inclusive_limit(value):
@@ -358,135 +359,185 @@ def try_get_limit(limit):
             'limit needs to be either an instance of Limit, an int or a float')
 
 
-class LowerLimitCondition(Condition):
+class ComparisonCondition(Condition):
+    """Condition for a simple comparison."""
+
+    def __init__(
+            self,
+            value=None,
+            retrieve_value=None,
+            name=''):
+        """Initialize."""
+        if value is None:
+            if retrieve_value is None:
+                raise RuntimeError(
+                    'Either value or retrieve_value has to be specified')
+            super().__init__(name=name)
+        else:
+            super().__init__(value=value, name=name)
+
+        self.retrieve_value = retrieve_value
+
+    @property
+    def value(self):
+        """Get the value."""
+        return self._value or self.retrieve_value()
+
+
+class LowerLimitCondition(ComparisonCondition):
     """Condition for a numeric function with just a lower limit."""
 
     def __init__(
-            self, lower_limit, name=''):
+            self,
+            lower_limit_is_inclusive,
+            lower_limit_value=None,
+            retrieve_lower_limit=None,
+            name=''):
         """Initialize."""
-        super().__init__(lower_limit, name)
-        self.lower_limit, self.lower_limit_is_inclusive = try_get_limit(
-            lower_limit)
-        self.evaluator_type = LowerLimitEvaluator
+        super().__init__(lower_limit_value, retrieve_lower_limit, name)
+
+        self.lower_limit_is_inclusive = lower_limit_is_inclusive
 
     def __repr__(self):
         """Get string representation of the lower limit condition."""
         return '{} lower limit at {}'.format(
             'inclusive' if self.lower_limit_is_inclusive else 'exclusive',
-            self.lower_limit)
+            self.value)
 
 
-class UpperLimitCondition(Condition):
+class UpperLimitCondition(ComparisonCondition):
     """Condition for a numeric function with just an upper limit."""
 
     def __init__(
-            self, upper_limit, name=''):
+            self,
+            upper_limit_is_inclusive,
+            upper_limit_value=None,
+            retrieve_upper_limit=None,
+            name=''):
         """Initialize."""
-        super().__init__(upper_limit, name)
-        self.upper_limit, self.upper_limit_is_inclusive = try_get_limit(
-            upper_limit)
+        super().__init__(upper_limit_value, retrieve_upper_limit, name)
+
+        self.upper_limit_is_inclusive = upper_limit_is_inclusive
 
     def __repr__(self):
         """Get a string representation of the upper limit condition."""
         return '{} upper limit at {}'.format(
             'inclusive' if self.upper_limit_is_inclusive else 'exclusive',
-            self.upper_limit)
+            self.value)
 
 
-class BothLimitsCondition(LowerLimitCondition, UpperLimitCondition):
+class BothLimitsCondition(Condition):
     """Condition with a lower limit and an upper limit."""
 
     def __init__(
-            self, lower_limit, upper_limit, name=''):
+            self,
+            lower_limit_is_inclusive,
+            upper_limit_is_inclusive,
+            lower_limit_value=None,
+            upper_limit_value=None,
+            retrieve_lower_limit=None,
+            retrieve_upper_limit=None,
+            name=''):
         """Initialize."""
-        LowerLimitCondition.__init__(self, lower_limit, name)
-        UpperLimitCondition.__init__(self, upper_limit, name)
+        super().__init__(
+            name=name)
+        self.lower_limit = LowerLimitCondition(
+            lower_limit_is_inclusive, lower_limit_value,
+            retrieve_lower_limit, name)
+        self.upper_limit = UpperLimitCondition(
+            upper_limit_is_inclusive, upper_limit_value,
+            retrieve_upper_limit, name)
+
+    @property
+    def value(self):
+        """Get the value."""
+        lower = Limit(
+            self.lower_limit.value, self.lower_limit.lower_limit_is_inclusive)
+        upper = Limit(
+            self.upper_limit.value, self.upper_limit.upper_limit_is_inclusive)
+        return Range(lower, upper)
 
     def __repr__(self):
         """Get a string representation of the both limits condition."""
         return '{} {} lower limit: {}, {} upper_limit: {})'.format(
-                'Both limits' if self.name == '' else self.name,
-                'inclusive' if self.lower_limit_is_inclusive else 'exclusive',
-                self.lower_limit,
-                'inclusive' if self.upper_limit_is_inclusive else 'exclusive',
-                self.upper_limit)
+            'Both limits' if self.name == '' else self.name,
+            'inclusive' if self.lower_limit.lower_limit_is_inclusive
+            else 'exclusive',
+            self.lower_limit.value,
+            'inclusive' if self.upper_limit.upper_limit_is_inclusive
+            else 'exclusive',
+            self.upper_limit.value)
 
 
-class GreaterThanCondition(Condition):
+class GreaterThanCondition(ComparisonCondition):
     """Condition for a numeric value that should be greater than some value."""
-
-    def __init__(self, value, name=''):
-        """Initialize."""
-        super().__init__(value, name)
-        self.greater_than = value
 
     def __repr__(self):
         """Get a string representation of the greater than condition."""
-        return 'greater than {}'.format(self.greater_than)
+        return f'greater than {self.value}'
 
 
-class GreaterThanOrEqualToCondition(Condition):
+class GreaterThanOrEqualToCondition(ComparisonCondition):
     """Condition that value should be greater than or equal to some value."""
 
-    def __init__(self, value, name=''):
-        """Initialize."""
-        super().__init__(value, name)
-        self.greater_than_or_equal_to = value
-
     def __repr__(self):
         """Get string representation of the condition."""
-        return 'greater than or equal to {}'.format(
-            self.greater_than_or_equal_to)
+        return f'greater than or equal to {self.value}'
 
 
-class EqualToCondition(Condition):
-    """Condition for a numeric value that should be equal to some value."""
-
-    def __init__(self, value, epsilon, name=''):
-        """Initialize."""
-        super().__init__(value, name)
-        self.equal_to = value
-        self.epsilon = epsilon
-
-    def __repr__(self):
-        """Get string representation of the condition."""
-        return 'equal to {}'.format(self.equal_to)
-
-
-class NotEqualToCondition(Condition):
-    """Condition for a numeric value that should not be equal to some value."""
-
-    def __init__(self, value, name=''):
-        """Initialize."""
-        super().__init__(value, name)
-        self.not_equal_to = value
-
-    def __repr__(self):
-        """Get string representation of the condition."""
-        return 'not equal to {}'.format(self.not_equal_to)
-
-
-class LessThanOrEqualToCondition(Condition):
+class LessThanOrEqualToCondition(ComparisonCondition):
     """Condition that value should be less than or equal to some value."""
 
-    def __init__(self, value, name=''):
-        """Initialize."""
-        super().__init__(value, name)
-        self.less_than_or_equal_to = value
-
     def __repr__(self):
         """Get string representation of the condition."""
-        return 'less than or equal to {}'.format(self.less_than_or_equal_to)
+        return f'less than or equal to {self.value}'
 
 
-class LessThanCondition(Condition):
+class LessThanCondition(ComparisonCondition):
     """Condition for a numeric value that should be less than some value."""
 
-    def __init__(self, value, name=''):
+    def __repr__(self):
+        """Get string representation of the condition."""
+        return f'less than {self.value}'
+
+
+class EqualityCondition(ComparisonCondition):
+    """Equality base class."""
+
+    def __init__(
+            self,
+            value=None,
+            retrieve_value=None,
+            epsilon=None,
+            retrieve_epsilon=None,
+            name=''):
         """Initialize."""
-        super().__init__(value, name)
-        self.less_than = value
+        super().__init__(self, value, retrieve_value, name)
+
+        if epsilon is None and retrieve_epsilon is None:
+            raise RuntimeError(
+                'Either epsilon or retrieve_epsilon has to be specified')
+
+        self._epsilon = epsilon
+        self.retrieve_epsilon = retrieve_epsilon
+
+    @property
+    def epsilon(self):
+        """Get epsilon."""
+        return self._epsilon or self.retrieve_epsilon()
+
+
+class EqualToCondition(EqualityCondition):
+    """Condition for a numeric value that should be equal to some value."""
 
     def __repr__(self):
         """Get string representation of the condition."""
-        return 'less than {}'.format(self.less_than)
+        return f'equal to {self.value} (epsilon: {self.epsilon})'
+
+
+class NotEqualToCondition(EqualityCondition):
+    """Condition for a numeric value that should not be equal to some value."""
+
+    def __repr__(self):
+        """Get string representation of the condition."""
+        return f'not equal to {self.value} (epsilon: {self.epsilon})'

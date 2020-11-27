@@ -543,10 +543,19 @@ class ConditionEvaluatorPair(object):
 class Condition(object):
     """Abstract base class for conditions."""
 
-    def __init__(self, value, name=''):
+    def __init__(self, value=None, name=''):
         """Initialize."""
-        self.value = value
+        self._value = value
         self.name = self.__class__.__name__ if name == '' else name
+
+    @property
+    def value(self):
+        """Property for returning the value."""
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        self._value = value
 
     def __repr__(self):
         """Return a string representation of condition."""

@@ -49,64 +49,84 @@
     <xs:complexContent>
       <xs:extension base="rospit:ConditionType">
         <xs:attribute name="value" type="xs:boolean" />
+        <xs:attribute name="parameter" type="xs:string" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
   <xs:complexType name="GreaterThan">
     <xs:complexContent>
       <xs:extension base="rospit:ConditionType">
-        <xs:attribute name="value" type="xs:float" use="required" />
+        <xs:attribute name="value" type="xs:float" />
+        <xs:attribute name="parameter" type="xs:string" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
   <xs:complexType name="GreaterThanOrEqualTo">
     <xs:complexContent>
       <xs:extension base="rospit:ConditionType">
-        <xs:attribute name="value" type="xs:float" use="required" />
+        <xs:attribute name="value" type="xs:float" />
+        <xs:attribute name="parameter" type="xs:string" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
   <xs:complexType name="EqualTo">
     <xs:complexContent>
       <xs:extension base="rospit:ConditionType">
-        <xs:attribute name="value" type="xs:float" use="required" />
+        <xs:attribute name="value" type="xs:float" />
+        <xs:attribute name="parameter" type="xs:string" />
+        <xs:attribute name="epsilon" type="xs:float" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="NotEqualTo">
+    <xs:complexContent>
+      <xs:extension base="rospit:ConditionType">
+        <xs:attribute name="value" type="xs:float" />
+        <xs:attribute name="parameter" type="xs:string" />
+        <xs:attribute name="epsilon" type="xs:float" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
   <xs:complexType name="LessThanOrEqualTo">
     <xs:complexContent>
       <xs:extension base="rospit:ConditionType">
-        <xs:attribute name="value" type="xs:float" use="required" />
+        <xs:attribute name="value" type="xs:float" />
+        <xs:attribute name="parameter" type="xs:string" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
   <xs:complexType name="LessThan">
     <xs:complexContent>
       <xs:extension base="rospit:ConditionType">
-        <xs:attribute name="value" type="xs:float" use="required" />
+        <xs:attribute name="value" type="xs:float" />
+        <xs:attribute name="parameter" type="xs:string" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
   <xs:complexType name="UpperLimit">
     <xs:complexContent>
       <xs:extension base="rospit:ConditionType">
-        <xs:attribute name="value" type="xs:float" use="required" />
+        <xs:attribute name="value" type="xs:float" />
+        <xs:attribute name="parameter" type="xs:string" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
   <xs:complexType name="LowerLimit">
     <xs:complexContent>
       <xs:extension base="rospit:ConditionType">
-        <xs:attribute name="value" type="xs:float" use="required" />
+        <xs:attribute name="value" type="xs:float" />
+        <xs:attribute name="parameter" type="xs:string" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
   <xs:complexType name="BothLimits">
     <xs:complexContent>
       <xs:extension base="rospit:ConditionType">
-        <xs:attribute name="lower_limit_value" type="xs:float" use="required" />
+        <xs:attribute name="lower_limit_value" type="xs:float" />
+        <xs:attribute name="lower_limit_parameter" type="xs:string" />
         <xs:attribute name="lower_limit_inclusive" type="xs:boolean" />
-        <xs:attribute name="upper_limit_value" type="xs:float" use="required" />
+        <xs:attribute name="upper_limit_value" type="xs:float" />
+        <xs:attribute name="upper_limit_parameter" type="xs:string" />
         <xs:attribute name="upper_limit_inclusive" type="xs:boolean" />
       </xs:extension>
     </xs:complexContent>
@@ -114,7 +134,8 @@
   <xs:complexType name="StringEquals">
     <xs:complexContent>
       <xs:extension base="rospit:ConditionType">
-        <xs:attribute name="value" type="xs:string" use="required" />
+        <xs:attribute name="value" type="xs:string" />
+        <xs:attribute name="parameter" type="xs:string" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
@@ -207,6 +228,31 @@
     </xs:sequence>
   </xs:complexType>
   <xs:complexType name="ExecutableItemType">
+  </xs:complexType>
+  <xs:complexType name="GetParameter">
+    <xs:complexContent>
+      <xs:extension base="rospit:ExecutableItemType">
+        <xs:attribute name="node_name" type="xs:string" use="required" />
+        <xs:attribute name="parameter_name" type="xs:string" use="required" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="SetParameter">
+    <xs:complexContent>
+      <xs:extension base="rospit:ExecutableItemType">
+        <xs:attribute name="node_name" type="xs:string" use="required" />
+        <xs:attribute name="parameter_name" type="xs:string" use="required" />
+        <xs:attribute name="parameter_value" type="xs:string" use="required" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="PrintParameter">
+    <xs:complexContent>
+      <xs:extension base="rospit:ExecutableItemType">
+        <xs:attribute name="node_name" type="xs:string" use="required" />
+        <xs:attribute name="parameter_name" type="xs:string" use="required" />
+      </xs:extension>
+    </xs:complexContent>
   </xs:complexType>
   <xs:complexType name="ServiceCall">
     <xs:complexContent>

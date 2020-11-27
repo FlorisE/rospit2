@@ -68,9 +68,23 @@ class CategoryMeasurement(Measurement):
 class InCategoriesCondition(Condition):
     """Condition that a value is within a list of accepted values."""
 
-    def __init__(self, categories=None, name=''):
+    def __init__(
+            self,
+            categories=None,
+            retrieve_categories=None,
+            name=''):
         """Initialize."""
-        super().__init__(name)
         if categories is None:
-            categories = set()
-        self.categories = categories
+            if retrieve_categories is None:
+                raise RuntimeError(
+                    'Categories or retrieve_categories has to be specified')
+            super().__init__(name=name)
+        else:
+            super().__init__(value=categories, name=name)
+
+        self.retrieve_categories = retrieve_categories
+
+    @property
+    def value(self):
+        """Get the value."""
+        return self._value or self.retrieve_categories()

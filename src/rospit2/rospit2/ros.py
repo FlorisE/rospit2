@@ -24,6 +24,8 @@
 import time
 from enum import Enum, auto
 
+from rcl_interfaces.msg import ParameterType
+
 import rclpy
 from rclpy.action import ActionServer
 from rclpy.node import Node
@@ -60,18 +62,55 @@ from .numeric import BothLimitsCondition, BothLimitsEvaluator, \
 INVARIANT_EVALUATIONS_TOPIC = '/invariant_evaluations'
 
 
+def get_numeric_value(value):
+    """Get the numeric value of the ParameterValue."""
+    if value.type == ParameterType.PARAMETER_INTEGER:
+        return value.integer_value
+    elif value.type == ParameterType.PARAMETER_DOUBLE:
+        return value.double_value
+    else:
+        raise ValueError('Expected integer or double value.')
+
+
+def get_boolean_value(value):
+    """Get the boolean value of the ParameterValue."""
+    if value.type == ParameterType.PARAMETER_BOOL:
+        return value.bool_value
+    else:
+        raise ValueError('Expected boolean value.')
+
+
+def get_string_value(value):
+    """Get the string value of the ParameterValue."""
+    if value.type == ParameterType.PARAMETER_STRING:
+        return value.string_value
+    else:
+        raise ValueError('Expected string value.')
+
+
 class StringEqualsCondition(Condition):
     """Condition that a string should equal another string."""
 
-    def __init__(self, value, name=''):
+    def __init__(self, value=None, retrieve_value=None, name=''):
         """Initialize."""
-        super().__init__(value, name)
-        self.value = value
-        self.name = self.__class__.__name__ if name == '' else name
+        if value is None:
+            if retrieve_value is None:
+                raise RuntimeError(
+                    'Either value or retrieve_value has to be specified')
+            super().__init__(name=name)
+        else:
+            super().__init__(value=value, name=name)
+
+        self.retrieve_value = retrieve_value
+
+    @property
+    def value(self):
+        """Get the value."""
+        return self._value or self.retrieve_value()
 
     def __repr__(self):
         """Get a string representation of the condition."""
-        return '{}({})'.format(self.name, self.value)
+        return f'{self.name}({self.value})'
 
 
 def map_evaluation(evaluation):
@@ -164,6 +203,7 @@ class ROSTestSuite(DeclarativeTestSuite):
         self.msg_received_subscribers = {}
         self.subscription_manager = SubscriptionManager(
                 self, self.node, subscribers)
+        self.stored_parameters = {}
 
     def run(self, logger):
         """
@@ -284,7 +324,6 @@ class ROSTestRunnerNode(Node):
         # prevent unused variable warning
         self.invariant_evaluation_subscription
         self.spinning = False
-        self.last_test_suite = None
         self._action_server = ActionServer(
                 self,
                 ExecuteXMLTestSuite,
@@ -315,14 +354,14 @@ class ROSTestRunnerNode(Node):
             result.error = 'Failed to parse the file specified at path'
             return result
 
-        self.last_test_suite = parser.parse()
+        test_suite = parser.parse()
 
-        if self.last_test_suite is None:
+        if test_suite is None:
             result.success = False
             result.error = 'No test suite loaded, call execute_xml_test_suite'
             return result
 
-        report = self.last_test_suite.run(self.get_logger())
+        report = test_suite.run(self.get_logger())
         mapped_report = map_test_suite_report(report)
         goal_handle.succeed()
         result.success = True

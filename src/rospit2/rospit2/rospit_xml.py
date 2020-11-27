@@ -21,6 +21,7 @@
 """ROS specific XML Parser for test specifications."""
 
 import os
+from functools import partial
 
 from lxml import etree
 
@@ -35,7 +36,6 @@ from .numeric import BothLimitsCondition, \
                      GreaterThanOrEqualToCondition, \
                      LessThanCondition, \
                      LessThanOrEqualToCondition, \
-                     Limit, \
                      LowerLimitCondition, \
                      NotEqualToCondition, \
                      UpperLimitCondition
@@ -48,11 +48,15 @@ from .ros import ExecutionReturnedEvaluator, \
                  Occurrence, \
                  ROSDeclarativeTestCase, \
                  ROSTestSuite, \
-                 StringEqualsCondition
-from .ros_steps import Launch, \
+                 StringEqualsCondition, \
+                 get_boolean_value, get_numeric_value, get_string_value
+from .ros_steps import GetParameter, \
+                       Launch, \
+                       PrintParameter, \
                        Publish, \
                        Run, \
                        ServiceCall, \
+                       SetParameter, \
                        Sleep, \
                        StaticValue, \
                        TopicValue
@@ -342,7 +346,11 @@ class Parser(object):
                 debug = False
 
             return Launch(
-                package_name, launch_file_name, launch_arguments, debug)
+                self.node,
+                package_name,
+                launch_file_name,
+                launch_arguments,
+                debug)
         elif elem_type == 'Publish':
             topic = element.attrib.get('topic')
             msg_type = element.attrib.get('type')
@@ -354,6 +362,25 @@ class Parser(object):
                 parameters = {}
             return Publish(
                 self.node, topic, msg_type, duration, rate, parameters)
+        elif elem_type == 'GetParameter':
+            node_name = element.attrib.get('node_name')
+            parameter_name = element.attrib.get('parameter_name')
+            return GetParameter(
+                self.node, node_name, parameter_name,
+                self.test_suite.stored_parameters)
+        elif elem_type == 'SetParameter':
+            node_name = element.attrib.get('node_name')
+            parameter_name = element.attrib.get('parameter_name')
+            parameter_value = element.attrib.get('parameter_value')
+            return SetParameter(
+                self.node, node_name, parameter_name, parameter_value,
+                self.test_suite.stored_parameters)
+        elif elem_type == 'PrintParameter':
+            node_name = element.attrib.get('node_name')
+            parameter_name = element.attrib.get('parameter_name')
+            return PrintParameter(
+                self.node, node_name, parameter_name,
+                self.test_suite.stored_parameters)
         elif elem_type == 'Run':
             try:
                 arguments = element.attrib['arguments']
@@ -365,6 +392,7 @@ class Parser(object):
             except KeyError:
                 blocking = False
             return Run(
+                self.node,
                 element.attrib['package_name'],
                 element.attrib['executable_name'],
                 arguments,
@@ -380,7 +408,8 @@ class Parser(object):
                 parameters, save_result=save_result)
         elif elem_type == 'Sleep':
             return Sleep(
-                element.attrib['duration'],
+                self.node,
+                float(element.attrib['duration']),
                 element.attrib.get('unit', 'second'))
         else:
             raise Exception('Unidenfied step {}'.format(elem_type))
@@ -431,36 +460,149 @@ class Parser(object):
         elem_type = element.attrib[XSI_TYPE]
         attr = element.attrib
         name = attr.get('name', '')
+
+        def get_value(parameter):
+            return self.test_suite.stored_parameters[parameter]
+
+        def get_value_numeric(parameter):
+            return get_numeric_value(get_value(parameter))
+
+        def get_value_bool(parameter):
+            return get_boolean_value(get_value(parameter))
+
+        def get_value_string(parameter):
+            return get_string_value(get_value(parameter))
+
+        get_partial_numeric = None
+        get_partial_bool = None
+        get_partial_string = None
+        if 'param' in attr:
+            get_partial_numeric = partial(get_value_numeric, attr['param'])
+            get_partial_bool = partial(get_value_bool, attr['param'])
+            get_partial_string = partial(get_value_string, attr['param'])
+
+        def need_value_or_parameter(attr, val_case, param_case):
+            if 'value' in attr:
+                return val_case()
+            elif 'parameter' in attr:
+                return param_case()
+            else:
+                raise RuntimeError(
+                    'Condition requires either value or parameter.')
+
         if elem_type == 'Binary':
-            return BinaryCondition(get_bool(attr['value']), name)
+            return need_value_or_parameter(
+                attr,
+                lambda: BinaryCondition(
+                    value=get_bool(attr['value']), name=name),
+                lambda: BinaryCondition(
+                    retrieve_value=get_partial_bool, name=name))
         elif elem_type == 'GreaterThan':
-            return GreaterThanCondition(float(attr['value']), name)
+            return need_value_or_parameter(
+                attr,
+                lambda: GreaterThanCondition(
+                    value=float(attr['value']), name=name),
+                lambda: GreaterThanCondition(
+                    retrieve_value=get_partial_numeric, name=name))
         elif elem_type == 'GreaterThanOrEqualTo':
+            return need_value_or_parameter(
+                attr,
+                lambda: GreaterThanOrEqualToCondition(
+                    value=float(attr['value']), name=name),
+                lambda: GreaterThanOrEqualToCondition(
+                    retrieve_value=get_partial_numeric, name=name))
             return GreaterThanOrEqualToCondition(float(attr['value']), name)
         elif elem_type == 'NotEqualTo':
+            return need_value_or_parameter(
+                attr,
+                lambda: NotEqualToCondition(
+                    value=float(attr['value']),
+                    epsilon=float(attr['epsilon']),
+                    name=name),
+                lambda: NotEqualToCondition(
+                    retrieve_value=get_partial_numeric,
+                    epsilon=float(attr['epsilon']),
+                    name=name))
             return NotEqualToCondition(float(attr['value']), name)
         elif elem_type == 'EqualTo':
-            return EqualToCondition(float(attr['value']), name)
+            return need_value_or_parameter(
+                attr,
+                lambda: EqualToCondition(
+                    value=float(attr['value']),
+                    epsilon=float(attr['epsilon']),
+                    name=name),
+                lambda: EqualToCondition(
+                    retrieve_value=get_partial_numeric,
+                    epsilon=float(attr['epsilon']),
+                    name=name))
         elif elem_type == 'LessThanOrEqualTo':
-            return LessThanOrEqualToCondition(float(attr['value']), name)
+            return need_value_or_parameter(
+                attr,
+                lambda: LessThanOrEqualToCondition(
+                    value=float(attr['value']), name=name),
+                lambda: LessThanOrEqualToCondition(
+                    retrieve_value=get_partial_numeric,
+                    name=name))
         elif elem_type == 'LessThan':
-            return LessThanCondition(float(attr['value']), name)
+            return need_value_or_parameter(
+                attr,
+                lambda: LessThanCondition(
+                    value=float(attr['value']), name=name),
+                lambda: LessThanCondition(
+                    retrieve_value=get_partial_numeric,
+                    name=name))
         elif elem_type == 'UpperLimit':
-            limit = Limit(float(attr['value']), get_bool(attr['inclusive']))
-            return UpperLimitCondition(limit, name)
+            return need_value_or_parameter(
+                attr,
+                lambda: UpperLimitCondition(
+                    upper_limit_is_inclusive=get_bool(attr['inclusive']),
+                    upper_limit_value=float(attr['value']),
+                    name=name),
+                lambda: UpperLimitCondition(
+                    upper_limit_is_inclusive=get_bool(attr['inclusive']),
+                    retrieve_upper_limit=get_partial_numeric,
+                    name=name))
         elif elem_type == 'LowerLimit':
-            limit = Limit(float(attr['value']), get_bool(attr['inclusive']))
-            return LowerLimitCondition(limit, name)
+            return need_value_or_parameter(
+                attr,
+                lambda: LowerLimitCondition(
+                    lower_limit_is_inclusive=get_bool(attr['inclusive']),
+                    lower_limit_value=float(attr['value']),
+                    name=name),
+                lambda: LowerLimitCondition(
+                    lower_limit_is_inclusive=get_bool(attr['inclusive']),
+                    retrieve_lower_limit=get_partial_numeric,
+                    name=name))
         elif elem_type == 'BothLimits':
-            lower_limit = Limit(
-                float(attr['lower_limit_value']),
-                get_bool(attr.get('lower_limit_inclusive', 'true')))
-            upper_limit = Limit(
-                float(attr['upper_limit_value']),
-                get_bool(attr.get('upper_limit_inclusive', 'true')))
-            return BothLimitsCondition(lower_limit, upper_limit, name)
+            llv = None
+            if 'lower_limit_value' in attr:
+                llv = float(attr['lower_limit_value'])
+
+            ulv = None
+            if 'upper_limit_value' in attr:
+                ulv = float(attr['upper_limit_value'])
+
+            llp = None
+            if 'lower_limit_parameter' in attr:
+                llp = partial(get_value_numeric, attr['lower_limit_parameter'])
+
+            ulp = None
+            if 'upper_limit_parameter' in attr:
+                ulp = partial(get_value_numeric, attr['upper_limit_parameter'])
+
+            return BothLimitsCondition(
+                attr.get('lower_limit_inclusive', 'true'),
+                attr.get('upper_limit_inclusive', 'true'),
+                llv,
+                ulv,
+                llp,
+                ulp,
+                name)
         elif elem_type == 'StringEquals':
-            return StringEqualsCondition(attr['value'])
+            return need_value_or_parameter(
+                attr,
+                lambda: StringEqualsCondition(attr['value'], name=name),
+                lambda: StringEqualsCondition(get_partial_string, name=name))
         else:
             raise ValueError('Unexpected type {}'.format(elem_type))
 
