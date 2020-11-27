@@ -52,7 +52,7 @@ A simple example test script is included. Follow these instructions to run it:
 * Source your ROS 2 installation, e.g. `source /opt/ros/foxy/setup.bash`.
 * Run `colcon build` in the workspace.
 * Source the workspace, e.g. `source install/local_setup.bash`.
-* Start the test runner service: `python3 src/rospit2/scripts/run_tests.py`
+* Start the test runner service: `ros2 run rospit2 test_script`
 * Open a new terminal, navigate to the workspace, source your ROS 2 installation and the workspace.
 * Call the action server for executing XML test scripts: `ros2 action send_goal /execute_xml_test_suite rospit_msgs/action/ExecuteXMLTestSuite "{ path: <PATH TO WORK SPACE>/src/rospit2/examples/move_turtlesim.xml }"`
 * Turtlesim should start automatically, the turtle should move, meanwhile the movement will be verified by ROSPIT. Afterwards turtlesim will automatically be closed.
