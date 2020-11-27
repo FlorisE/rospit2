@@ -234,6 +234,7 @@
       <xs:extension base="rospit:ExecutableItemType">
         <xs:attribute name="node_name" type="xs:string" use="required" />
         <xs:attribute name="parameter_name" type="xs:string" use="required" />
+        <xs:attribute name="store_as" type="xs:string" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
@@ -243,14 +244,7 @@
         <xs:attribute name="node_name" type="xs:string" use="required" />
         <xs:attribute name="parameter_name" type="xs:string" use="required" />
         <xs:attribute name="parameter_value" type="xs:string" use="required" />
-      </xs:extension>
-    </xs:complexContent>
-  </xs:complexType>
-  <xs:complexType name="PrintParameter">
-    <xs:complexContent>
-      <xs:extension base="rospit:ExecutableItemType">
-        <xs:attribute name="node_name" type="xs:string" use="required" />
-        <xs:attribute name="parameter_name" type="xs:string" use="required" />
+        <xs:attribute name="store_as" type="xs:string" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>

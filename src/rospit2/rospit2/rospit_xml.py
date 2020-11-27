@@ -52,7 +52,6 @@ from .ros import ExecutionReturnedEvaluator, \
                  get_boolean_value, get_numeric_value, get_string_value
 from .ros_steps import GetParameter, \
                        Launch, \
-                       PrintParameter, \
                        Publish, \
                        Run, \
                        ServiceCall, \
@@ -365,22 +364,18 @@ class Parser(object):
         elif elem_type == 'GetParameter':
             node_name = element.attrib.get('node_name')
             parameter_name = element.attrib.get('parameter_name')
+            store_as = element.attrib.get('store_as', None)
             return GetParameter(
                 self.node, node_name, parameter_name,
-                self.test_suite.stored_parameters)
+                self.test_suite.stored_parameters, store_as=store_as)
         elif elem_type == 'SetParameter':
             node_name = element.attrib.get('node_name')
             parameter_name = element.attrib.get('parameter_name')
             parameter_value = element.attrib.get('parameter_value')
+            store_as = element.attrib.get('store_as', None)
             return SetParameter(
                 self.node, node_name, parameter_name, parameter_value,
-                self.test_suite.stored_parameters)
-        elif elem_type == 'PrintParameter':
-            node_name = element.attrib.get('node_name')
-            parameter_name = element.attrib.get('parameter_name')
-            return PrintParameter(
-                self.node, node_name, parameter_name,
-                self.test_suite.stored_parameters)
+                self.test_suite.stored_parameters, store_as=store_as)
         elif elem_type == 'Run':
             try:
                 arguments = element.attrib['arguments']
