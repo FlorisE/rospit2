@@ -68,6 +68,7 @@ class GetParameter(Step):
             self, node, node_name, parameter_name, stored_parameters,
             get_parameters_override=None, store_as=None):
         """Initialize."""
+        super().__init__()
         if node is None:
             raise ValueError(node)
         self.node = node  # node used for execution
@@ -196,6 +197,8 @@ class SetParameter(Step):
             self, node, node_name, parameter_name, parameter_value,
             stored_parameters, set_parameters_override=None, store_as=None):
         """Initialize."""
+        super().__init__()
+
         if node is None:
             raise ValueError(node)
         self.node = node  # node used for execution
@@ -241,6 +244,8 @@ class LoadParametersFromFile(Step):
 
     def __init__(self, node, path, stored_parameters):
         """Initialize."""
+        super().__init__()
+
         if node is None:
             raise ValueError(node)
         self.node = node  # node used for execution
@@ -416,6 +421,8 @@ class Launch(Step):
             launch_arguments=[],
             debug=False):
         """Initialize."""
+        super().__init__()
+
         self.node = node
         self.package_name = package_name
         self.launch_file_name = launch_file_name
@@ -458,6 +465,7 @@ class Publish(Step):
                  save_result=False):
         """Publish a message to a topic."""
         super().__init__(save_result)
+
         self.node = node
         self.topic = topic
         self.msg_type = msg_type
@@ -511,7 +519,8 @@ class Run(Step):
 
     def __init__(self, node, package_name, executable_name, argv, blocking):
         """Initialize."""
-        super().__init__(False)
+        super().__init__()
+
         self.node = node
         self.package_name = package_name
         self.executable_name = executable_name
@@ -653,7 +662,7 @@ class Sleep(Step):
 
     def __init__(self, node, time, unit='second'):
         """Initialize."""
-        super().__init__(False)
+        super().__init__()
         self.node = node
         if unit == 'second' or unit == 'seconds':
             self.time = time
