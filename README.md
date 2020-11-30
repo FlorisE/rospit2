@@ -17,7 +17,7 @@ If you use this work in a research project, please cite:
 The rospit2 package contains:
 * The rospit2 framework, written in Python.
 * A turtlesim example written using the XML front-end for ROSPIT.
-* The `run_tests.py` script that starts a test runner.
+* A ROS Test Runner node.
 
 A major component of ROSPIT2 is the XML specification for test suites, for which a schema can be found [here](src/rospit2/rospit2/xml/rospit.xsd).
 `framework.py` contains a low level testing framework, mostly similar to frameworks such as JUnit or xUnit, but with the addition of pre- and post-conditions and invariants.

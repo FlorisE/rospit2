@@ -26,6 +26,7 @@ import os
 import signal
 import threading
 import time
+from collections import namedtuple
 from multiprocessing import Pipe, Process
 
 from ament_index_python.packages import PackageNotFoundError
@@ -34,6 +35,8 @@ from ament_index_python.packages import get_package_prefix
 from launch import LaunchDescription, LaunchService
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import AnyLaunchDescriptionSource
+
+from lxml import etree
 
 from rcl_interfaces.msg import Parameter, ParameterType
 from rcl_interfaces.srv import GetParameters, SetParameters
@@ -147,6 +150,45 @@ class GetParameter(Step):
         self.node.get_logger().info(f'{label} {value}')
 
 
+def set_parameter(
+        node,
+        node_name,
+        parameter_name,
+        parameter_value,
+        store_as,
+        stored_parameters):
+    """Set a parameter on the ROS Parameter Server."""
+    if store_as:
+        node.get_logger().info(
+            'Setting parameter {} of node {} to {}, storing as {}'.format(
+                parameter_name, node_name,
+                parameter_value, store_as))
+    else:
+        node.get_logger().info(
+            'Setting parameter {} of node {} to {}'.format(
+                parameter_name, node_name, parameter_value))
+
+    client = node.create_client(
+        SetParameters, f'{node_name}/set_parameters')
+    ready = client.wait_for_service(timeout_sec=5.0)
+    if not ready:
+        raise RuntimeError('Wait for service timed out')
+
+    parameter_encoded = get_parameter_value(
+        string_value=parameter_value)
+
+    parameter = Parameter()
+    parameter.name = parameter_name
+    parameter.value = parameter_encoded
+
+    request = SetParameters.Request()
+    request.parameters = [parameter]
+    client.call(request)
+
+    key = store_as or f'/{node_name}/{parameter_name}'
+    stored_parameters[key] = parameter_encoded
+
+
 class SetParameter(Step):
     """Set a parameter on the parameter server."""
 
@@ -181,35 +223,111 @@ class SetParameter(Step):
 
     def execute(self):
         """Set the parameter value."""
-        if self.store_as:
-            self.node.get_logger().info(
-                'Setting parameter {} of node {} to {}, storing as {}'.format(
-                    self.parameter_name, self.node_name,
-                    self.parameter_value, self.store_as))
+        set_parameter(
+            self.node,
+            self.node_name,
+            self.parameter_name,
+            self.parameter_value,
+            self.store_as,
+            self.stored_parameters)
+
+
+ROSPITParameter = namedtuple(
+    'ROSPITParameter', 'node_name name value store_as')
+
+
+class LoadParametersFromFile(Step):
+    """Loads multiple parameters at a time."""
+
+    def __init__(self, node, path, stored_parameters):
+        """Initialize."""
+        if node is None:
+            raise ValueError(node)
+        self.node = node  # node used for execution
+
+        if path is None:
+            raise ValueError(path)
+        self.path = path
+
+        if stored_parameters is None:
+            raise ValueError(stored_parameters)
+        self.stored_parameters = stored_parameters
+
+
+class LoadParametersFromXMLFile(LoadParametersFromFile):
+    """Loads multiple parameters at a time, from a CSV file."""
+
+    def __init__(self, node, path, stored_parameters):
+        """Initialize."""
+        super().__init__(node, path, stored_parameters)
+
+    def execute(self):
+        """Load the parameters."""
+        param_file = open(self.path)
+        content = param_file.read()
+        tree = etree.fromstring(content)
+        # root element of the tree should be Parameters
+        if tree.tag == 'Parameters':
+            for child in tree.getchildren():
+                if child.tag == 'Parameter':
+                    node_name = child.attrib['node_name']
+                    parameter_name = child.attrib['parameter_name']
+                    parameter_value = child.attrib['parameter_value']
+                    store_as = child.attrib.get('store_as', None)
+
+                    set_parameter(
+                        self.node,
+                        node_name,
+                        parameter_name,
+                        parameter_value,
+                        store_as,
+                        self.stored_parameters)
+                else:
+                    raise RuntimeError(
+                        f'Expected Parameter element but got {child.tag}')
         else:
-            self.node.get_logger().info(
-                'Setting parameter {} of node {} to {}'.format(
-                    self.parameter_name, self.node_name, self.parameter_value))
+            raise RuntimeError(
+                f'Expected Parameters element but got {tree.tag}')
 
-        client = self.node.create_client(
-            SetParameters, f'{self.node_name}/set_parameters')
-        ready = client.wait_for_service(timeout_sec=5.0)
-        if not ready:
-            raise RuntimeError('Wait for service timed out')
 
-        parameter_encoded = get_parameter_value(
-            string_value=self.parameter_value)
+class LoadParametersFromCSVFile(LoadParametersFromFile):
+    """Loads multiple parameters at a time, from a CSV file."""
 
-        parameter = Parameter()
-        parameter.name = self.parameter_name
-        parameter.value = parameter_encoded
+    def __init__(self, node, path, separator, stored_parameters):
+        """Initialize."""
+        super().__init__(node, path, stored_parameters)
+        if separator is None:
+            raise ValueError(separator)
+        self.separator = separator
 
-        request = SetParameters.Request()
-        request.parameters = [parameter]
-        client.call(request)
+    def execute(self):
+        """Load the parameters."""
+        param_file = open(self.path)
 
-        key = self.store_as or f'/{self.node_name}/{self.parameter_name}'
-        self.stored_parameters[key] = parameter_encoded
+        for param_line in param_file.read().splitlines():
+            param_parts = param_line.split(self.separator)
+            num_param_parts = len(param_parts)
+
+            if num_param_parts < 3 or num_param_parts > 4:
+                raise RuntimeError(
+                    f'Expected 4 or 5 elements in the parameter line but '
+                    f'got {num_param_parts}')
+
+            if num_param_parts >= 3:
+                node_name = param_parts[0]
+                param_name = param_parts[1]
+                param_value = param_parts[2]
+
+            if num_param_parts == 4:
+                store_as = param_parts[3]
+
+            set_parameter(
+                self.node,
+                node_name,
+                param_name,
+                param_value,
+                store_as,
+                self.stored_parameters)
 
 
 class LaunchArgs:

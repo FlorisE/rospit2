@@ -52,6 +52,8 @@ from .ros import ExecutionReturnedEvaluator, \
                  get_boolean_value, get_numeric_value, get_string_value
 from .ros_steps import GetParameter, \
                        Launch, \
+                       LoadParametersFromCSVFile, \
+                       LoadParametersFromXMLFile, \
                        Publish, \
                        Run, \
                        ServiceCall, \
@@ -376,6 +378,17 @@ class Parser(object):
             return SetParameter(
                 self.node, node_name, parameter_name, parameter_value,
                 self.test_suite.stored_parameters, store_as=store_as)
+        elif elem_type == 'LoadParametersFromCSVFile':
+            path = element.attrib['path']
+            separator = element.attrib.get('separator', '\t')
+
+            return LoadParametersFromCSVFile(
+                self.node, path, separator, self.test_suite.stored_parameters)
+        elif elem_type == 'LoadParametersFromXMLFile':
+            path = element.attrib['path']
+
+            return LoadParametersFromXMLFile(
+                self.node, path, self.test_suite.stored_parameters)
         elif elem_type == 'Run':
             try:
                 arguments = element.attrib['arguments']

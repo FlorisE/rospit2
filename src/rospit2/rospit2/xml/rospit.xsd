@@ -248,6 +248,21 @@
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
+  <xs:complexType name="LoadParametersFromCSVFile">
+    <xs:complexContent>
+      <xs:extension base="rospit:ExecutableItemType">
+        <xs:attribute name="path" type="xs:string" use="required" />
+        <xs:attribute name="separator" type="xs:string" default="\t" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="LoadParametersFromXMLFile">
+    <xs:complexContent>
+      <xs:extension base="rospit:ExecutableItemType">
+        <xs:attribute name="path" type="xs:string" use="required" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
   <xs:complexType name="ServiceCall">
     <xs:complexContent>
       <xs:extension base="rospit:ExecutableItemType">
