@@ -56,8 +56,9 @@ setuptools.setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'test_script = rospit2.run_tests:main'
+            'test_runner = rospit2.test_runner:main',
+            'run_session = rospit2.run_session:main'
         ],
     },
-    package_data={package_name: ['xml/rospit.xsd']},
+    package_data={package_name: ['xml/rospit.xsd', 'xml/session.xsd']},
 )

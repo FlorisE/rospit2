@@ -1,0 +1,8 @@
+test_runner,lower_limit_x_pre,5.54,llx_pre
+test_runner,upper_limit_x_pre,5.55,ulx_pre
+test_runner,lower_limit_y_pre,5.54,lly_pre
+test_runner,upper_limit_y_pre,5.55,uly_pre
+test_runner,lower_limit_x_post,7.53,llx_post
+test_runner,upper_limit_x_post,7.57,ulx_post
+test_runner,upper_limit_y_post,5.54,lly_post
+test_runner,upper_limit_y_post,5.55,uly_post

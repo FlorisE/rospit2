@@ -1,4 +1,5 @@
 string path
+rospit_msgs/Parameter[] parameters
 ---
 bool success
 rospit_msgs/TestSuiteReport report

@@ -15,6 +15,7 @@ set(msg_files
   "msg/EvaluationStamped.msg"
   "msg/MovementEvaluation.msg"
   "msg/MovementEvaluationStamped.msg"
+  "msg/Parameter.msg"
   "msg/Point2DEvaluation.msg"
   "msg/Point2DEvaluationStamped.msg"
   "msg/Point2D.msg"

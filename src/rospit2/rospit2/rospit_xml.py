@@ -69,11 +69,6 @@ _ROOT = os.path.abspath(os.path.dirname(__file__))
 SCHEMA_PATH = 'xml/rospit.xsd'
 
 
-def with_ns(element):
-    """Prepend element with name space."""
-    return NS + element
-
-
 def get_parser():
     """Get the parser."""
     loc = open(os.path.join(_ROOT, SCHEMA_PATH), 'r')
@@ -81,6 +76,15 @@ def get_parser():
     schema = etree.XMLSchema(tree)
     parser = etree.XMLParser(schema=schema)
     return parser
+
+
+def get_test_suite_from_xml_string(node, xml, validate=True):
+    """Get a test suite from an XML string."""
+    if validate:
+        tree = etree.fromstring(xml, get_parser())
+    else:
+        tree = etree.fromstring(xml)
+    return TestSuiteParser(node, tree)
 
 
 def get_test_suite_from_xml_path(node, path, validate=True):
@@ -94,23 +98,9 @@ def get_test_suite_from_xml_path(node, path, validate=True):
     return get_test_suite_from_xml_string(node, content, validate)
 
 
-def get_bool(value):
-    """Get a bool from value."""
-    if str(value) == '1' or value == 'true':
-        return True
-    elif str(value) == '0' or value == 'false' or value is None:
-        return False
-    else:
-        raise ValueError('value was not recognized as a valid boolean')
-
-
-def get_test_suite_from_xml_string(node, xml, validate=True):
-    """Get a test suite from an XML string."""
-    if validate:
-        tree = etree.fromstring(xml, get_parser())
-    else:
-        tree = etree.fromstring(xml)
-    return Parser(node, tree)
+def with_ns(element):
+    """Prepend element with name space."""
+    return NS + element
 
 
 class SubscriberFactory(object):
@@ -202,6 +192,16 @@ class SubscriberFactory(object):
             raise Exception(f'Unexpected child of type {elem_type}')
 
 
+def get_bool(value):
+    """Get a bool from value."""
+    if str(value) == '1' or value == 'true':
+        return True
+    elif str(value) == '0' or value == 'false' or value is None:
+        return False
+    else:
+        raise ValueError('value was not recognized as a valid boolean')
+
+
 def get_occurrence(occurrence_str):
     """Convert an occurrence string to an enum value."""
     occurrence_map = {
@@ -218,7 +218,7 @@ def get_occurrence(occurrence_str):
         raise ValueError(f'{occurrence_str} is not a valid occurrence string')
 
 
-class Parser(object):
+class TestSuiteParser(object):
     """A parser for ROS PIT XML tests."""
 
     def __init__(self, node, root):

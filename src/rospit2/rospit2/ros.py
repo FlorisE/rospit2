@@ -21,25 +21,13 @@
 """ROS specific implementation of the testing framework."""
 
 
+import asyncio
 import time
 from enum import Enum, auto
 
 from rcl_interfaces.msg import ParameterType
 
-import rclpy
-from rclpy.action import ActionServer
-from rclpy.node import Node
-
 from rosidl_runtime_py.utilities import get_message
-
-from rospit_msgs.action import ExecuteXMLTestSuite
-from rospit_msgs.msg import Condition as ConditionMessage, \
-                            ConditionEvaluationPair as CEPMessage, \
-                            ConditionEvaluationPairStamped, \
-                            Evaluation as EvaluationMessage, \
-                            TestCase as TestCaseMessage, \
-                            TestCaseReport as TestCaseReportMessage, \
-                            TestSuiteReport as TestSuiteReportMessage
 
 from .binary import BinaryMeasurement
 from .declarative import DeclarativeTestCase, DeclarativeTestSuite
@@ -57,9 +45,7 @@ from .numeric import BothLimitsCondition, BothLimitsEvaluator, \
                      NotEqualToCondition, NotEqualToEvaluator, \
                      NumericMeasurement, \
                      UpperLimitCondition, UpperLimitEvaluator
-
-
-INVARIANT_EVALUATIONS_TOPIC = '/invariant_evaluations'
+from .ros_parameters import store_parameters
 
 
 def get_numeric_value(value):
@@ -113,35 +99,6 @@ class StringEqualsCondition(Condition):
         return f'{self.name}({self.value})'
 
 
-def map_evaluation(evaluation):
-    """Map evaluation from the framework to ROS ConditionEvaluationPair."""
-    condition_msg = ConditionMessage(name=evaluation.condition.name)
-    evaluation_msg = EvaluationMessage(
-        nominal=evaluation.nominal,
-        payload=evaluation.expected_actual_string())
-    return CEPMessage(condition=condition_msg, evaluation=evaluation_msg)
-
-
-def map_test_case_report(report):
-    """Map a test case report from the framework to a ROS message."""
-    tc = TestCaseMessage(name=report.test_case.name)
-    p_c = [map_evaluation(evaluation) for evaluation in report.preconditions]
-    iv = []
-    for _, evaluations in report.invariants.items():
-        for evaluation in evaluations:
-            iv.append(map_evaluation(evaluation))
-    post_c = [map_evaluation(ev) for ev in report.postconditions]
-    return TestCaseReportMessage(
-        test_case=tc, preconditions=p_c, invariants=iv, postconditions=post_c)
-
-
-def map_test_suite_report(report):
-    """Map a report from the test framework to a ROS message."""
-    reports = [map_test_case_report(tcr) for tcr in report.test_case_reports]
-    return TestSuiteReportMessage(
-        test_suite_name=report.test_suite.name, test_case_reports=reports)
-
-
 class SubscriptionManager(object):
     """Manages subscriptions."""
 
@@ -185,6 +142,31 @@ class SubscriptionManager(object):
                         self.initialized_subscribers[topic]
 
 
+class ROSPITSessionEpisode:
+    """A test execution specification."""
+
+    def __init__(self, name, path, test_case=None, parameters=None):
+        """Initialize."""
+        self.name = name
+        self.path = path
+        self.test_case = test_case
+        self.parameters = parameters
+
+
+class ROSPITSession:
+    """A ROSPIT specific test session."""
+
+    def __init__(self, node):
+        """Initialize."""
+        self.node = node
+        self.episodes = []
+
+    def execute(self):
+        """Execute tests for this session."""
+        for episode in self.episodes:
+            episode.execute()
+
+
 class ROSTestSuite(DeclarativeTestSuite):
     """A ROS specific test suite."""
 
@@ -205,12 +187,17 @@ class ROSTestSuite(DeclarativeTestSuite):
                 self, self.node, subscribers)
         self.stored_parameters = {}
 
-    def run(self, logger):
+    def run(self, logger, parameters=None):
         """
         Run the test suite.
 
         Wraps the super method to add subscription management.
         """
+        if parameters:
+            asyncio.run(
+                store_parameters(
+                    self.node, parameters, self.stored_parameters))
+
         self.subscription_manager.initialize_subscribers()
         report = super().run(logger)
         self.subscription_manager.delete_subscribers()
@@ -307,86 +294,6 @@ class ROSInvariant(object):
         """Evaluate the invariant."""
         measurement = self.call_evaluator_with_data(data)
         return self.evaluate_measurement(measurement)
-
-
-class ROSTestRunnerNode(Node):
-    """A node that runs tests and publishes their results."""
-
-    def __init__(self, executor):
-        """Initialize."""
-        super().__init__('test_runner')
-        self.node_executor = executor
-        self.invariant_evaluations = []
-
-        self.invariant_evaluation_subscription = self.create_subscription(
-            ConditionEvaluationPairStamped, INVARIANT_EVALUATIONS_TOPIC,
-            self.add_invariant_evaluation, 10)
-        # prevent unused variable warning
-        self.invariant_evaluation_subscription
-        self.spinning = False
-        self._action_server = ActionServer(
-                self,
-                ExecuteXMLTestSuite,
-                'execute_xml_test_suite',
-                self.execute_xml_test_suite)
-        self.active_goal_handle = None
-
-    def execute_xml_test_suite(self, goal_handle):
-        """
-        Execute a test suite specified in an XML file.
-
-        Request should be a string specifying the path to the test to run.
-        """
-        self.active_goal_handle = goal_handle
-        self.get_logger().info('Executing test suite')
-        result = ExecuteXMLTestSuite.Result()
-
-        from rospit2.rospit_xml import get_test_suite_from_xml_path
-        if not goal_handle.request.path:
-            result.success = False
-            result.error = 'No path to test description specified'
-            return result
-
-        parser = get_test_suite_from_xml_path(
-            self, goal_handle.request.path, True)
-        if not parser:
-            result.success = False
-            result.error = 'Failed to parse the file specified at path'
-            return result
-
-        test_suite = parser.parse()
-
-        if test_suite is None:
-            result.success = False
-            result.error = 'No test suite loaded, call execute_xml_test_suite'
-            return result
-
-        report = test_suite.run(self.get_logger())
-        mapped_report = map_test_suite_report(report)
-        goal_handle.succeed()
-        result.success = True
-        result.report = mapped_report
-        return result
-
-    def add_invariant_evaluation(self, evaluation):
-        """Store the invariant evaluation."""
-        self.invariant_evaluations.append(evaluation)
-
-    def spin(self):
-        """Spin the node."""
-        self.spinning = True
-        self.get_logger().info('Test runner ready')
-        rclpy.spin(self, self.node_executor)
-
-    def report_executing(self, test_suite, test_case):
-        """Report to action server which suite and case are being executed."""
-        if not self.active_goal_handle:
-            self.get_logger().error('not currently executing a goal')
-        feedback_msg = ExecuteXMLTestSuite.Feedback()
-        feedback_msg.state = 'Executing'
-        feedback_msg.active_test_suite_name = test_suite
-        feedback_msg.active_test_case_name = test_case
-        self.active_goal_handle.publish_feedback(feedback_msg)
 
 
 def get_field_or_message(message, field_str):

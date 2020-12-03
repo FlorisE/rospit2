@@ -1,0 +1,40 @@
+<TestSuite xmlns="https://www.aist.go.jp/rospit" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Move turtlesim">
+  <TestCase name="MoveUp">
+    <SetUp>
+      <Step xsi:type="Run" package_name="turtlesim" executable_name="turtlesim_node" blocking="false" />
+      <Step xsi:type="Sleep" duration="3" />
+    </SetUp>
+    <Preconditions>
+      <Precondition>
+        <Condition xsi:type="BothLimits" lower_limit_parameter="llx_pre" upper_limit_parameter="ulx_pre" />
+        <Evaluator xsi:type="NumericMessagesEvaluator" topic="/turtle1/pose" field="x" type="turtlesim/msg/Pose" />
+      </Precondition>
+      <Precondition>
+        <Condition xsi:type="BothLimits" lower_limit_parameter="lly_pre" upper_limit_parameter="uly_pre" />
+        <Evaluator xsi:type="NumericMessagesEvaluator" topic="/turtle1/pose" field="y" type="turtlesim/msg/Pose" />
+      </Precondition>
+    </Preconditions>
+    <Invariants>
+      <Invariant>
+        <Condition xsi:type="BothLimits" lower_limit_parameter="lly_pre" upper_limit_parameter="uly_pre" />
+        <Evaluator xsi:type="NumericMessageEvaluator" topic="/turtle1/pose" field="y" type="turtlesim/msg/Pose" />
+      </Invariant>
+    </Invariants>
+    <Run>
+      <Step xsi:type="Publish" topic="/turtle1/cmd_vel" type="geometry_msgs/msg/Twist" duration="2" rate="1">
+        <MessageYaml>{ linear: { x: 1.0, y: 0, z: 0 }, angular: { x: 0, y: 0, z: 0 } }</MessageYaml>
+      </Step>
+      <Step xsi:type="Sleep" duration="5" />
+    </Run>
+    <Postconditions>
+      <Postcondition>
+        <Condition xsi:type="BothLimits" lower_limit_parameter="llx_post" upper_limit_parameter="ulx_post" />
+        <Evaluator xsi:type="NumericMessagesEvaluator" topic="/turtle1/pose" field="x" type="turtlesim/msg/Pose" />
+      </Postcondition>
+      <Postcondition>
+        <Condition xsi:type="BothLimits" lower_limit_parameter="lly_post" upper_limit_parameter="uly_post" />
+        <Evaluator xsi:type="NumericMessagesEvaluator" topic="/turtle1/pose" field="y" type="turtlesim/msg/Pose" />
+      </Postcondition>
+    </Postconditions>
+  </TestCase>
+</TestSuite>

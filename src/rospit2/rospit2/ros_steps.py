@@ -26,7 +26,6 @@ import os
 import signal
 import threading
 import time
-from collections import namedtuple
 from multiprocessing import Pipe, Process
 
 from ament_index_python.packages import PackageNotFoundError
@@ -36,19 +35,13 @@ from launch import LaunchDescription, LaunchService
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import AnyLaunchDescriptionSource
 
-from lxml import etree
-
-from rcl_interfaces.msg import Parameter, ParameterType
-from rcl_interfaces.srv import GetParameters, SetParameters
-
 from rclpy.duration import Duration
 
 from ros2launch.api import MultipleLaunchFilesError
 from ros2launch.api import get_share_file_path_from_package
 
 from ros2param.api import call_get_parameters, \
-                          call_set_parameters, \
-                          get_parameter_value
+                          call_set_parameters
 
 from ros2run.api import get_executable_path
 
@@ -59,6 +52,10 @@ from rosidl_runtime_py.utilities import get_message
 
 from .declarative import Step
 from .ros import get_field_or_message
+from .ros_parameters import get_parameter, \
+                            parse_and_store_csv_parameters, \
+                            parse_and_store_xml_parameters, \
+                            set_parameter
 
 
 class GetParameter(Step):
@@ -94,100 +91,12 @@ class GetParameter(Step):
 
     def execute(self):
         """Get the parameter value."""
-        if self.store_as:
-            self.node.get_logger().info(
-                'Getting parameter {} of node {}, storing as {}'.format(
-                    self.parameter_name, self.node_name, self.store_as))
-        else:
-            self.node.get_logger().info(
-                'Getting parameter {} of node {}'.format(
-                    self.parameter_name, self.node_name))
-
-        client = self.node.create_client(
-            GetParameters, f'{self.node_name}/get_parameters')
-        ready = client.wait_for_service(timeout_sec=5.0)
-        if not ready:
-            raise RuntimeError('Wait for service timed out')
-
-        request = GetParameters.Request()
-        request.names = [self.parameter_name]
-        result = client.call(request)
-        key = self.store_as or f'/{self.node_name}/{self.parameter_name}'
-        pvalue = result.values[0]
-        self.stored_parameters[key] = pvalue
-        if pvalue.type == ParameterType.PARAMETER_BOOL:
-            label = 'Boolean value is:'
-            value = pvalue.bool_value
-        elif pvalue.type == ParameterType.PARAMETER_INTEGER:
-            label = 'Integer value is:'
-            value = pvalue.integer_value
-        elif pvalue.type == ParameterType.PARAMETER_DOUBLE:
-            label = 'Double value is:'
-            value = pvalue.double_value
-        elif pvalue.type == ParameterType.PARAMETER_STRING:
-            label = 'String value is:'
-            value = pvalue.string_value
-        elif pvalue.type == ParameterType.PARAMETER_BYTE_ARRAY:
-            label = 'Byte values are:'
-            value = pvalue.byte_array_value
-        elif pvalue.type == ParameterType.PARAMETER_BOOL_ARRAY:
-            label = 'Boolean values are:'
-            value = pvalue.bool_array_value
-        elif pvalue.type == ParameterType.PARAMETER_INTEGER_ARRAY:
-            label = 'Integer values are:'
-            value = pvalue.integer_array_value
-        elif pvalue.type == ParameterType.PARAMETER_DOUBLE_ARRAY:
-            label = 'Double values are:'
-            value = pvalue.double_array_value
-        elif pvalue.type == ParameterType.PARAMETER_STRING_ARRAY:
-            label = 'String values are:'
-            value = pvalue.string_array_value
-        elif pvalue.type == ParameterType.PARAMETER_NOT_SET:
-            label = 'Parameter not set.'
-            value = None
-        else:
-            raise ValueError(
-                f"Unknown parameter type '{pvalue.type}' for key {key}")
-        self.node.get_logger().info(f'{label} {value}')
-
-
-def set_parameter(
-        node,
-        node_name,
-        parameter_name,
-        parameter_value,
-        store_as,
-        stored_parameters):
-    """Set a parameter on the ROS Parameter Server."""
-    if store_as:
-        node.get_logger().info(
-            'Setting parameter {} of node {} to {}, storing as {}'.format(
-                parameter_name, node_name,
-                parameter_value, store_as))
-    else:
-        node.get_logger().info(
-            'Setting parameter {} of node {} to {}'.format(
-                parameter_name, node_name, parameter_value))
-
-    client = node.create_client(
-        SetParameters, f'{node_name}/set_parameters')
-    ready = client.wait_for_service(timeout_sec=5.0)
-    if not ready:
-        raise RuntimeError('Wait for service timed out')
-
-    parameter_encoded = get_parameter_value(
-        string_value=parameter_value)
-
-    parameter = Parameter()
-    parameter.name = parameter_name
-    parameter.value = parameter_encoded
-
-    request = SetParameters.Request()
-    request.parameters = [parameter]
-    client.call(request)
-
-    key = store_as or f'/{node_name}/{parameter_name}'
-    stored_parameters[key] = parameter_encoded
+        get_parameter(
+            self.node,
+            self.node_name,
+            self.parameter_name,
+            self.store_as,
+            self.stored_parameters)
 
 
 class SetParameter(Step):
@@ -226,17 +135,16 @@ class SetParameter(Step):
 
     def execute(self):
         """Set the parameter value."""
-        set_parameter(
-            self.node,
-            self.node_name,
-            self.parameter_name,
-            self.parameter_value,
-            self.store_as,
-            self.stored_parameters)
-
-
-ROSPITParameter = namedtuple(
-    'ROSPITParameter', 'node_name name value store_as')
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(
+            set_parameter(
+                self.node,
+                self.node_name,
+                self.parameter_name,
+                self.parameter_value,
+                self.store_as,
+                self.stored_parameters))
 
 
 class LoadParametersFromFile(Step):
@@ -268,31 +176,8 @@ class LoadParametersFromXMLFile(LoadParametersFromFile):
 
     def execute(self):
         """Load the parameters."""
-        param_file = open(self.path)
-        content = param_file.read()
-        tree = etree.fromstring(content)
-        # root element of the tree should be Parameters
-        if tree.tag == 'Parameters':
-            for child in tree.getchildren():
-                if child.tag == 'Parameter':
-                    node_name = child.attrib['node_name']
-                    parameter_name = child.attrib['parameter_name']
-                    parameter_value = child.attrib['parameter_value']
-                    store_as = child.attrib.get('store_as', None)
-
-                    set_parameter(
-                        self.node,
-                        node_name,
-                        parameter_name,
-                        parameter_value,
-                        store_as,
-                        self.stored_parameters)
-                else:
-                    raise RuntimeError(
-                        f'Expected Parameter element but got {child.tag}')
-        else:
-            raise RuntimeError(
-                f'Expected Parameters element but got {tree.tag}')
+        parse_and_store_xml_parameters(
+            self.node, self.path, self.stored_parameters)
 
 
 class LoadParametersFromCSVFile(LoadParametersFromFile):
@@ -307,32 +192,11 @@ class LoadParametersFromCSVFile(LoadParametersFromFile):
 
     def execute(self):
         """Load the parameters."""
-        param_file = open(self.path)
-
-        for param_line in param_file.read().splitlines():
-            param_parts = param_line.split(self.separator)
-            num_param_parts = len(param_parts)
-
-            if num_param_parts < 3 or num_param_parts > 4:
-                raise RuntimeError(
-                    f'Expected 4 or 5 elements in the parameter line but '
-                    f'got {num_param_parts}')
-
-            if num_param_parts >= 3:
-                node_name = param_parts[0]
-                param_name = param_parts[1]
-                param_value = param_parts[2]
-
-            if num_param_parts == 4:
-                store_as = param_parts[3]
-
-            set_parameter(
-                self.node,
-                node_name,
-                param_name,
-                param_value,
-                store_as,
-                self.stored_parameters)
+        parse_and_store_csv_parameters(
+            self.node,
+            self.path,
+            self.separator,
+            self.stored_parameters)
 
 
 class LaunchArgs:

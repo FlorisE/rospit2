@@ -1,0 +1,27 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="https://www.aist.go.jp/rospit-session"
+  xmlns:rts="https://www.aist.go.jp/rospit-session"
+  elementFormDefault="qualified">
+  <xs:element name="Session" type="rts:SessionType" />
+  <xs:complexType name="SessionType">
+    <xs:sequence>
+      <xs:element name="Episode" type="rts:EpisodeType" minOccurs="1" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="EpisodeType">
+    <xs:sequence>
+      <xs:element name="Parameter" type="rts:ParameterType" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" />
+    <xs:attribute name="test_definition_path" type="xs:string" use="required" />
+    <xs:attribute name="test_case" type="xs:string" />
+    <xs:attribute name="parameters_xml" type="xs:string" />
+    <xs:attribute name="parameters_csv" type="xs:string" />
+  </xs:complexType>
+  <xs:complexType name="ParameterType">
+    <xs:attribute name="node_name" type="xs:string" use="required" />
+    <xs:attribute name="parameter_name" type="xs:string" use="required" />
+    <xs:attribute name="parameter_value" type="xs:string" use="required" />
+    <xs:attribute name="store_as" type="xs:string" />
+  </xs:complexType>
+</xs:schema>

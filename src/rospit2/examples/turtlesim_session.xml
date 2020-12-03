@@ -1,0 +1,12 @@
+<Session xmlns="https://www.aist.go.jp/rospit-session" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Episode test_definition_path="src/rospit2/examples/move_turtlesim_requiring_parameters.xml">
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_pre" parameter_value="5.54" store_as="llx_pre" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_pre" parameter_value="5.55" store_as="ulx_pre" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_y_pre" parameter_value="5.54" store_as="lly_pre" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_pre" parameter_value="5.55" store_as="uly_pre" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_post" parameter_value="7.53" store_as="llx_post" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_post" parameter_value="7.57" store_as="ulx_post" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_post" parameter_value="5.54" store_as="lly_post" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_post" parameter_value="5.55" store_as="uly_post" />
+  </Episode>
+</Session>
