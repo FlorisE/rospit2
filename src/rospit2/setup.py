@@ -56,7 +56,7 @@ setuptools.setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'test_runner = rospit2.test_runner:main',
+            'test_runner = rospit2.rospit_test_runner:main',
             'run_session = rospit2.run_session:main'
         ],
     },

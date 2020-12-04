@@ -30,7 +30,7 @@ from rospit_msgs.action import ExecuteXMLTestSuite
 
 from .ros_parameters import map_param_to_msg
 from .rospit_session_xml import get_session_from_xml_path
-from .test_runner import ROSTestRunnerNode
+from .rospit_test_runner import ROSTestRunnerNode
 
 
 class ExecuteCall(Thread):
