@@ -10,6 +10,12 @@
       <Step xsi:type="SetParameter" node_name="test_runner" parameter_name="upper_limit_x_post" parameter_value="7.57" store_as="ulx_post" />
       <Step xsi:type="SetParameter" node_name="test_runner" parameter_name="upper_limit_y_post" parameter_value="5.54" store_as="lly_post" />
       <Step xsi:type="SetParameter" node_name="test_runner" parameter_name="upper_limit_y_post" parameter_value="5.55" store_as="uly_post" />
+      <Step xsi:type="SetParameter" node_name="test_runner" parameter_name="lin_x" parameter_value="1.0" store_as="lin_x" />
+      <Step xsi:type="SetParameter" node_name="test_runner" parameter_name="lin_y" parameter_value="0.0" store_as="lin_y" />
+      <Step xsi:type="SetParameter" node_name="test_runner" parameter_name="lin_z" parameter_value="0.0" store_as="lin_z" />
+      <Step xsi:type="SetParameter" node_name="test_runner" parameter_name="ang_x" parameter_value="0.0" store_as="ang_x" />
+      <Step xsi:type="SetParameter" node_name="test_runner" parameter_name="ang_y" parameter_value="0.0" store_as="ang_y" />
+      <Step xsi:type="SetParameter" node_name="test_runner" parameter_name="ang_z" parameter_value="0.0" store_as="ang_z" />
       <Step xsi:type="Sleep" duration="3" />
     </SetUp>
     <Preconditions>
@@ -30,7 +36,7 @@
     </Invariants>
     <Run>
       <Step xsi:type="Publish" topic="/turtle1/cmd_vel" type="geometry_msgs/msg/Twist" duration="2" rate="1">
-        <MessageYaml>{ linear: { x: 1.0, y: 0, z: 0 }, angular: { x: 0, y: 0, z: 0 } }</MessageYaml>
+        <MessageYaml use_substitution="true">{ linear: { x: $lin_x, y: $lin_y, z: $lin_z }, angular: { x: $ang_x, y: $ang_y, z: $ang_z } }</MessageYaml>
       </Step>
       <Step xsi:type="Sleep" duration="5" />
     </Run>

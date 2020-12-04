@@ -326,6 +326,7 @@
   <xs:complexType name="MessageYaml">
     <xs:simpleContent>
       <xs:extension base="xs:string">
+        <xs:attribute name="use_substitution" type="xs:boolean" default="false" />
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>

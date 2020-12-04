@@ -192,14 +192,14 @@ class SubscriberFactory(object):
             raise Exception(f'Unexpected child of type {elem_type}')
 
 
-def get_bool(value):
+def get_bool(v):
     """Get a bool from value."""
-    if str(value) == '1' or value == 'true':
+    if str(v) == '1' or v == 'true' or v is True:
         return True
-    elif str(value) == '0' or value == 'false' or value is None:
+    elif str(v) == '0' or v == 'false' or v is None or v is False:
         return False
     else:
-        raise ValueError('value was not recognized as a valid boolean')
+        raise ValueError(f'value {v} was not recognized as a valid boolean')
 
 
 def get_occurrence(occurrence_str):
@@ -313,16 +313,6 @@ class TestSuiteParser(object):
                 raise Exception('Unexpected child')
         return ConditionEvaluatorPair(condition, evaluator)
 
-    def get_parameters(self, element):
-        """Get parameter from element."""
-        if element.tag == with_ns('Message'):
-            return self.get_message(element)
-        elif element.tag == with_ns('MessageYaml'):
-            return yaml.safe_load(element.text)
-        else:
-            raise Exception(
-                'Unidenfied message specification {}'.format(element.tag))
-
     def get_step_from_xml_element(self, element):
         """Get step from element."""
         elem_type = element.attrib[XSI_TYPE]
@@ -357,12 +347,25 @@ class TestSuiteParser(object):
             msg_type = element.attrib.get('type')
             duration = float(element.attrib.get('duration'))
             rate = int(element.attrib.get('rate'))
+            use_substitution = False
             if len(element) > 0:
-                parameters = self.get_parameters(element[0])
+                if element[0].tag == with_ns('Message'):
+                    parameters = self.get_message(element[0])
+                elif element[0].tag == with_ns('MessageYaml'):
+                    use_substitution = get_bool(
+                        element[0].attrib.get(
+                            'use_substitution', False))
+                    parameters = yaml.safe_load(element[0].text)
+                else:
+                    raise Exception(
+                        'Unidenfied message specification {}'.format(
+                            element[0].tag))
             else:
                 parameters = {}
             return Publish(
-                self.node, topic, msg_type, duration, rate, parameters)
+                self.node, topic, msg_type, duration, rate,
+                parameters, self.test_suite.stored_parameters,
+                use_substitution=use_substitution)
         elif elem_type == 'GetParameter':
             node_name = element.attrib.get('node_name')
             parameter_name = element.attrib.get('parameter_name')
@@ -406,14 +409,26 @@ class TestSuiteParser(object):
                 arguments,
                 blocking)
         elif elem_type == 'ServiceCall':
+            use_substitution = False
             if len(element) > 0:
-                parameters = self.get_parameters(element[0])
+                if element[0].tag == with_ns('Message'):
+                    parameters = self.get_message(element[0])
+                elif element[0].tag == with_ns('MessageYaml'):
+                    use_substitution = get_bool(
+                        element[0].attrib.get(
+                            'use_substitution', False))
+                    parameters = yaml.safe_load(element[0].text)
+                else:
+                    raise Exception(
+                        'Unidenfied message specification {}'.format(
+                            element[0].tag))
             else:
                 parameters = {}
             save_result = get_bool(element.attrib.get('save_result', 'false'))
             return ServiceCall(
                 self.node, element.attrib['service'], element.attrib['type'],
-                parameters, save_result=save_result)
+                parameters, self.test_suite.stored_parameters,
+                use_substitution, save_result=save_result)
         elif elem_type == 'Sleep':
             return Sleep(
                 self.node,

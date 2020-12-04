@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-"""Script that launches a ROSPIT session."""
+"""Script that launches a ROSPIT test suite."""
 
 from threading import Thread
 
@@ -28,8 +28,6 @@ from rclpy.executors import MultiThreadedExecutor
 
 from rospit_msgs.action import ExecuteXMLTestSuite
 
-from .ros_parameters import map_param_to_msg
-from .rospit_session_xml import get_session_from_xml_path
 from .rospit_test_runner import ROSTestRunnerNode
 
 
@@ -50,31 +48,13 @@ class ExecuteCall(Thread):
         if not path:
             self.node.get_logger().error('Path has not been specified')
             return
-        parser = get_session_from_xml_path(self, path)
 
-        if not parser:
-            self.node.get_logger().error('Could not initialize parser.')
-            return
-
-        session = parser.parse()
-
-        if not session:
-            self.node.get_logger().error(
-                'Could not parse the session definition.')
-            return
-
-        for episode in session.episodes:
-            self.node.get_logger().info(
-                f'Executing test episode {episode.name}')
-            goal_msg = ExecuteXMLTestSuite.Goal()
-            goal_msg.path = episode.path
-            goal_msg.parameters = [
-                map_param_to_msg(parameter) for parameter
-                in episode.parameters]
-            self.action_client.wait_for_server()
-            response = self.action_client.send_goal(goal_msg)
-            self.node.get_logger().info(
-                f'Status: {response.status}')
+        goal_msg = ExecuteXMLTestSuite.Goal()
+        goal_msg.path = path
+        self.action_client.wait_for_server()
+        response = self.action_client.send_goal(goal_msg)
+        self.node.get_logger().info(
+            f'Status: {response.status}')
 
 
 class ExecuteSpin(Thread):
@@ -94,7 +74,7 @@ class ExecuteSpin(Thread):
 
 
 def main(args=None):
-    """Run a ROSPIT test session."""
+    """Run a ROSPIT test suite."""
     rclpy.init(args=args)
     executor = MultiThreadedExecutor()
     node = ROSTestRunnerNode(executor)

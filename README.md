@@ -17,8 +17,9 @@ If you use this work in a research project, please cite:
 The rospit2 package contains:
 * The rospit2 framework, written in Python.
 * A turtlesim example written using the XML front-end for ROSPIT.
-* A ROS Test Runner node (started using `ros2 run test_runner`).
-* A ROS Test Execution script (started using `ros2 run session --ros-args -p path:=*path_to_test_session.xml*`).
+* A ROS Test Runner node (started using `ros2 run rospit2 test_runner`).
+* A ROSPIT Test Session Execution script (started using `ros2 run rospit2 session --ros-args -p path:=path_to_test_session.xml`).
+* A ROSPIT Test Suite Execution script (started using `ros2 run rospit2 suite --ros-args -p path:=path_to_test_suite.xml`).
 
 A major component of ROSPIT2 is the XML specification for test suites, for which a schema can be found [here](src/rospit2/rospit2/xml/rospit.xsd).
 Additionally there is an XML specification for parameterized execution of tests as sessions and episodes, for which a schema can be found [here](src/rospit2/rospit2/xml/session.xsd).
@@ -63,8 +64,16 @@ A simple example test script is included. Follow these instructions to run it:
 * Source your ROS 2 installation, e.g. `source /opt/ros/foxy/setup.bash`.
 * Run `colcon build` in the workspace.
 * Source the workspace, e.g. `source install/local_setup.bash`.
-* Run the turtlesim example using `ros2 run rospit2 session --ros-args -p path:=src/rospit2/examples/turtlesim_session.xml`.
+* Run the turtlesim example using `ros2 run rospit2 suite --ros-args -p path:=src/rospit2/examples/move_turtlesim_embedded_parameters.xml`.
 * Turtlesim should start automatically, the turtle should move, meanwhile the movement will be verified by ROSPIT. Afterwards turtlesim will automatically be closed.
+
+You can find the following variants of move_turtlesim:
+* `move_turtlesim_no_invariants_no_parameters.xml`: Moves the turtlesim using position and velocity hardcoded in the test suite, does not check for invariants.
+* `move_turtlesim_no_parameters.xml`: Moves the turtlesim using position and velocity hardcoded in the test suite, while checking for invariants.
+* `move_turtlesim_embedded_parameters.xml`: Moves the turtlesim using position and velocity specified as parameters within the test suite, while checking for invariants.
+* `move_turtlesim_requiring_parameters.xml`: Moves the turtlesim according to parameters that should be supplied to the test suite by using sessions and episodes.
+* `move_turtlesim_using_parameters_file.xml`: Moves the turtlesim according to parameters specified in a parameters file (in this case using `move_turtlesim_parameters.xml`).
+* `move_turtlesim_session.xml`: Moves the turtlesim using a session, relies on the `move_turtlesim_requiring_parameters.xml` test suite.
 
 A more complex example using a CRANE X7 robot arm can be found in [this repository](https://github.com/FlorisE/crane_pnp_pits/). The example has not been ported to ROS 2 yet.
 

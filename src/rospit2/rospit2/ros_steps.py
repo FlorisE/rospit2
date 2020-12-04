@@ -21,6 +21,7 @@
 """ROS specific steps."""
 
 import asyncio
+import copy
 import importlib
 import os
 import signal
@@ -34,6 +35,8 @@ from ament_index_python.packages import get_package_prefix
 from launch import LaunchDescription, LaunchService
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import AnyLaunchDescriptionSource
+
+from rcl_interfaces.msg import ParameterType
 
 from rclpy.duration import Duration
 
@@ -319,14 +322,69 @@ class Launch(Step):
         self.process.join()
 
 
+def substitude_values(value_dict, param_dict):
+    """Substitude variables in the parameters."""
+    def get_result(param_buff):
+        param_dict_key = param_buff.decode()
+        value = param_dict[param_dict_key]
+        if value.type == ParameterType.PARAMETER_BOOL:
+            value = str(value.bool_value)
+        elif value.type == ParameterType.PARAMETER_INTEGER:
+            value = str(value.integer_value)
+        elif value.type == ParameterType.PARAMETER_DOUBLE:
+            value = str(value.double_value)
+        elif value.type == ParameterType.PARAMETER_STRING:
+            value = value.string_value
+        else:
+            raise RuntimeError(f'value is of unrecognized type {value.type}')
+        return value.encode('utf-8')
+
+    for key, value in value_dict.items():
+        v_type = type(value)
+        if v_type is dict:
+            value_dict[key] = substitude_values(value, param_dict)
+        elif v_type is str:
+            i = 0
+            dollar_found = False
+            result = bytearray('', encoding='utf-8')
+            param_buff = bytearray('', encoding='utf-8')
+            while i < len(value):
+                if not dollar_found:
+                    if value[i] == '$':
+                        dollar_found = True
+                    else:
+                        result += value[i].encode('utf-8')
+                else:
+                    is_space = value[i] == ' '
+                    is_dollar = value[i] == '$'
+                    if is_space or is_dollar:
+                        result += get_result(param_buff)
+                        param_buff = bytearray('', encoding='utf-8')
+                        if is_space:
+                            dollar_found = False
+                            result += ' '.encode('utf-8')
+                    else:
+                        param_buff += value[i].encode('utf-8')
+                i += 1
+            if dollar_found:
+                result += get_result(param_buff)
+            value_dict[key] = result.decode()
+        else:
+            # no need to do anything
+            pass
+    return value_dict
+
+
 class Publish(Step):
     """Publish a message to a topic."""
 
-    def __init__(self, node, topic, msg_type, duration, rate, parameters,
-                 qos_profile_str='system_default',
-                 qos_reliability_str='system_default',
-                 qos_durability_str='system_default',
-                 save_result=False):
+    def __init__(
+            self, node, topic, msg_type, duration, rate, parameters,
+            parameter_values, use_substitution,
+            qos_profile_str='system_default',
+            qos_reliability_str='system_default',
+            qos_durability_str='system_default',
+            save_result=False):
         """Publish a message to a topic."""
         super().__init__(save_result)
 
@@ -336,6 +394,8 @@ class Publish(Step):
         self.duration = 1 if duration is None else duration
         self.rate = 1 if rate is None else rate
         self.parameters = parameters
+        self.parameter_values = parameter_values
+        self.use_substitution = use_substitution
         self.qos_profile_str = qos_profile_str
         self.qos_reliability_str = qos_reliability_str
         self.qos_durability_str = qos_durability_str
@@ -355,7 +415,13 @@ class Publish(Step):
         pub = self.node.create_publisher(msg_module, self.topic, qos_profile)
 
         msg = msg_module()
-        set_message_fields(msg, self.parameters)
+        if self.use_substitution:
+            # deep copy so we don't lose the variables for future executions
+            parameters_copy = copy.deepcopy(self.parameters)
+            substitude_values(parameters_copy, self.parameter_values)
+            set_message_fields(msg, parameters_copy)
+        else:
+            set_message_fields(msg, self.parameters)
 
         if not once:
             clock = self.node.get_clock()
@@ -501,8 +567,15 @@ def call_service(node, service_name, service_type, service_args):
 class ServiceCall(Step):
     """Call a ROS Service."""
 
-    def __init__(self, node, service, service_type,
-                 parameters=None, save_result=False):
+    def __init__(
+            self,
+            node,
+            service,
+            service_type,
+            parameters=None,
+            stored_parameters=None,
+            use_substitution=False,
+            save_result=False):
         """Call a ROS Service."""
         super().__init__(save_result)
         if parameters is None:
@@ -511,14 +584,24 @@ class ServiceCall(Step):
         self.service = service
         self.service_type = service_type
         self.parameters = parameters
+        self.stored_parameters = stored_parameters
+        self.use_substitution = use_substitution
 
     def execute(self):
         """Call the service."""
         self.node.get_logger().info(
             'Calling service {}'.format(self.service))
-        return call_service(
-            self.node, self.service, self.service_type,
-            _fill_parameters(self.parameters))
+        if self.use_substitution:
+            # deep copy so we don't lose the variables for future executions
+            parameters_copy = copy.deepcopy(self.parameters)
+            substitude_values(parameters_copy, self.parameter_values)
+            return call_service(
+                self.node, self.service, self.service_type,
+                _fill_parameters(parameters_copy))
+        else:
+            return call_service(
+                self.node, self.service, self.service_type,
+                _fill_parameters(self.parameters))
 
 
 class Sleep(Step):
