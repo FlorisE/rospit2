@@ -1,5 +1,5 @@
 <Session xmlns="https://www.aist.go.jp/rospit-session" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <Episode test_definition_path="src/rospit2/examples/move_turtlesim_requiring_parameters.xml">
+  <Episode test_definition_path="src/rospit2/examples/move_turtlesim_requiring_parameters.xml" name="move_right">
     <Parameter node_name="test_runner" parameter_name="lower_limit_x_pre" parameter_value="5.54" store_as="llx_pre" />
     <Parameter node_name="test_runner" parameter_name="upper_limit_x_pre" parameter_value="5.55" store_as="ulx_pre" />
     <Parameter node_name="test_runner" parameter_name="lower_limit_y_pre" parameter_value="5.54" store_as="lly_pre" />
@@ -8,5 +8,79 @@
     <Parameter node_name="test_runner" parameter_name="upper_limit_x_post" parameter_value="7.57" store_as="ulx_post" />
     <Parameter node_name="test_runner" parameter_name="upper_limit_y_post" parameter_value="5.54" store_as="lly_post" />
     <Parameter node_name="test_runner" parameter_name="upper_limit_y_post" parameter_value="5.55" store_as="uly_post" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_inv" parameter_value="5.54" store_as="llx" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_inv" parameter_value="7.57" store_as="ulx" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_y_inv" parameter_value="5.54" store_as="lly" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_inv" parameter_value="5.55" store_as="uly" />
+    <Parameter node_name="test_runner" parameter_name="lin_x" parameter_value="1.0" store_as="lin_x" />
+    <Parameter node_name="test_runner" parameter_name="lin_y" parameter_value="0.0" store_as="lin_y" />
+    <Parameter node_name="test_runner" parameter_name="lin_z" parameter_value="0.0" store_as="lin_z" />
+    <Parameter node_name="test_runner" parameter_name="ang_x" parameter_value="0.0" store_as="ang_x" />
+    <Parameter node_name="test_runner" parameter_name="ang_y" parameter_value="0.0" store_as="ang_y" />
+    <Parameter node_name="test_runner" parameter_name="ang_z" parameter_value="0.0" store_as="ang_z" />
+  </Episode>
+  <Episode test_definition_path="src/rospit2/examples/move_turtlesim_requiring_parameters.xml" name="move_left">
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_pre" parameter_value="5.54" store_as="llx_pre" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_pre" parameter_value="5.55" store_as="ulx_pre" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_y_pre" parameter_value="5.54" store_as="lly_pre" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_pre" parameter_value="5.55" store_as="uly_pre" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_post" parameter_value="3.53" store_as="llx_post" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_post" parameter_value="3.57" store_as="ulx_post" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_post" parameter_value="5.54" store_as="lly_post" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_post" parameter_value="5.55" store_as="uly_post" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_inv" parameter_value="3.53" store_as="llx" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_inv" parameter_value="5.55" store_as="ulx" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_y_inv" parameter_value="5.54" store_as="lly" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_inv" parameter_value="5.55" store_as="uly" />
+    <Parameter node_name="test_runner" parameter_name="lin_x" parameter_value="-1.0" store_as="lin_x" />
+    <Parameter node_name="test_runner" parameter_name="lin_y" parameter_value="0.0" store_as="lin_y" />
+    <Parameter node_name="test_runner" parameter_name="lin_z" parameter_value="0.0" store_as="lin_z" />
+    <Parameter node_name="test_runner" parameter_name="ang_x" parameter_value="0.0" store_as="ang_x" />
+    <Parameter node_name="test_runner" parameter_name="ang_y" parameter_value="0.0" store_as="ang_y" />
+    <Parameter node_name="test_runner" parameter_name="ang_z" parameter_value="0.0" store_as="ang_z" />
+  </Episode>
+  <Episode test_definition_path="src/rospit2/examples/move_turtlesim_requiring_parameters.xml" name="move_up">
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_pre" parameter_value="5.54" store_as="llx_pre" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_pre" parameter_value="5.55" store_as="ulx_pre" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_y_pre" parameter_value="5.54" store_as="lly_pre" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_pre" parameter_value="5.55" store_as="uly_pre" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_post" parameter_value="5.54" store_as="llx_post" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_post" parameter_value="5.55" store_as="ulx_post" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_post" parameter_value="7.53" store_as="lly_post" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_post" parameter_value="7.57" store_as="uly_post" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_pre" parameter_value="5.54" store_as="llx_pre" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_pre" parameter_value="5.55" store_as="ulx_pre" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_inv" parameter_value="5.54" store_as="llx" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_inv" parameter_value="5.55" store_as="ulx" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_y_inv" parameter_value="5.54" store_as="lly" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_inv" parameter_value="7.57" store_as="uly" />
+    <Parameter node_name="test_runner" parameter_name="lin_x" parameter_value="0.0" store_as="lin_x" />
+    <Parameter node_name="test_runner" parameter_name="lin_y" parameter_value="1.0" store_as="lin_y" />
+    <Parameter node_name="test_runner" parameter_name="lin_z" parameter_value="0.0" store_as="lin_z" />
+    <Parameter node_name="test_runner" parameter_name="ang_x" parameter_value="0.0" store_as="ang_x" />
+    <Parameter node_name="test_runner" parameter_name="ang_y" parameter_value="0.0" store_as="ang_y" />
+    <Parameter node_name="test_runner" parameter_name="ang_z" parameter_value="0.0" store_as="ang_z" />
+  </Episode>
+  <Episode test_definition_path="src/rospit2/examples/move_turtlesim_requiring_parameters.xml" name="move_up">
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_pre" parameter_value="5.54" store_as="llx_pre" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_pre" parameter_value="5.55" store_as="ulx_pre" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_y_pre" parameter_value="5.54" store_as="lly_pre" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_pre" parameter_value="5.55" store_as="uly_pre" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_post" parameter_value="5.54" store_as="llx_post" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_post" parameter_value="5.55" store_as="ulx_post" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_pre" parameter_value="5.54" store_as="llx_pre" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_pre" parameter_value="5.55" store_as="ulx_pre" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_post" parameter_value="3.53" store_as="lly_post" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_post" parameter_value="3.57" store_as="uly_post" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_x_inv" parameter_value="5.54" store_as="llx" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_x_inv" parameter_value="5.55" store_as="ulx" />
+    <Parameter node_name="test_runner" parameter_name="lower_limit_y_inv" parameter_value="3.53" store_as="lly" />
+    <Parameter node_name="test_runner" parameter_name="upper_limit_y_inv" parameter_value="5.55" store_as="uly" />
+    <Parameter node_name="test_runner" parameter_name="lin_x" parameter_value="0.0" store_as="lin_x" />
+    <Parameter node_name="test_runner" parameter_name="lin_y" parameter_value="-1.0" store_as="lin_y" />
+    <Parameter node_name="test_runner" parameter_name="lin_z" parameter_value="0.0" store_as="lin_z" />
+    <Parameter node_name="test_runner" parameter_name="ang_x" parameter_value="0.0" store_as="ang_x" />
+    <Parameter node_name="test_runner" parameter_name="ang_y" parameter_value="0.0" store_as="ang_y" />
+    <Parameter node_name="test_runner" parameter_name="ang_z" parameter_value="0.0" store_as="ang_z" />
   </Episode>
 </Session>
