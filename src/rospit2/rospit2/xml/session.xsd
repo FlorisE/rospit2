@@ -17,6 +17,9 @@
     <xs:attribute name="test_case" type="xs:string" />
     <xs:attribute name="parameters_xml" type="xs:string" />
     <xs:attribute name="parameters_csv" type="xs:string" />
+    <xs:attribute name="initialize_service" type="xs:string" />
+    <xs:attribute name="iterate_service" type="xs:string" />
+    <xs:attribute name="iterations" type="xs:int" />
   </xs:complexType>
   <xs:complexType name="ParameterType">
     <xs:attribute name="node_name" type="xs:string" use="required" />

@@ -58,7 +58,8 @@ setuptools.setup(
         'console_scripts': [
             'test_runner = rospit2.rospit_test_runner:main',
             'session = rospit2.run_session:main',
-            'suite = rospit2.run_test_suite:main'
+            'suite = rospit2.run_test_suite:main',
+            'turtlesim_mbt = rospit2.turtlesim_mbt:main'
         ],
     },
     package_data={package_name: ['xml/rospit.xsd', 'xml/session.xsd']},

@@ -26,11 +26,16 @@ set(msg_files
   "msg/TestSuite.msg"
   "msg/TestSuiteReport.msg")
 
+set(service_files
+  "srv/MBTInitializer.srv"
+  "srv/MBTIterator.srv")
+
 set(action_files
   "action/ExecuteXMLTestSuite.action")
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${msg_files}
+  ${service_files}
   ${action_files}
   DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
 )

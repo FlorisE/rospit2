@@ -145,12 +145,22 @@ class SubscriptionManager(object):
 class ROSPITSessionEpisode:
     """A test execution specification."""
 
-    def __init__(self, name, path, test_case=None, parameters=None):
+    def __init__(self,
+                 name,
+                 path,
+                 test_case=None,
+                 parameters=None,
+                 initialize_service=None,
+                 iterate_service=None,
+                 iterations=None):
         """Initialize."""
         self.name = name
         self.path = path
         self.test_case = test_case
         self.parameters = parameters
+        self.initialize_service = initialize_service
+        self.iterate_service = iterate_service
+        self.iterations = iterations
 
 
 class ROSPITSession:
@@ -160,11 +170,6 @@ class ROSPITSession:
         """Initialize."""
         self.node = node
         self.episodes = []
-
-    def execute(self):
-        """Execute tests for this session."""
-        for episode in self.episodes:
-            episode.execute()
 
 
 class ROSTestSuite(DeclarativeTestSuite):

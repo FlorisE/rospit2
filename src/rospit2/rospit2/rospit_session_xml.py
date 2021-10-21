@@ -102,6 +102,10 @@ class SessionParser(object):
         children = test.getchildren()
         parameters_xml = test.attrib.get('parameters_xml', None)
         parameters_csv = test.attrib.get('parameters_csv', None)
+        initialize_service = test.attrib.get('initialize_service',
+                                             None)
+        iterate_service = test.attrib.get('iterate_service', None)
+        iterations = test.attrib.get('iterations', None)
 
         parameters = []
         if parameters_xml and parameters_csv:
@@ -123,7 +127,13 @@ class SessionParser(object):
         elif parameters_csv:
             parameters = parse_csv_parameters(parameters_xml)
 
-        return ROSPITSessionEpisode(name, path, test_case, parameters)
+        return ROSPITSessionEpisode(name,
+                                    path,
+                                    test_case,
+                                    parameters,
+                                    initialize_service,
+                                    iterate_service,
+                                    iterations)
 
     def get_parameter_from_xml_element(self, parameter):
         """Parse Parameter element."""

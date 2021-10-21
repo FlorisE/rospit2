@@ -27,6 +27,7 @@ from rclpy.action import ActionClient
 from rclpy.executors import MultiThreadedExecutor
 
 from rospit_msgs.action import ExecuteXMLTestSuite
+from rospit_msgs.srv import MBTInitializer
 
 from .ros_parameters import map_param_to_msg
 from .rospit_session_xml import get_session_from_xml_path
@@ -66,11 +67,34 @@ class ExecuteCall(Thread):
         for episode in session.episodes:
             self.node.get_logger().info(
                 f'Executing test episode {episode.name}')
+            if episode.initialize_service:
+                self.node.get_logger().info(
+                    f'Initializer: {episode.initialize_service}')
+                client = self.node.create_client(MBTInitializer,
+                                                 episode.initialize_service)
+                request = MBTInitializer.Request()
+                client.call(request)
+            if episode.iterate_service:
+                self.node.get_logger().info(
+                    f'Iterator: {episode.iterate_service}')
+                if episode.iterations == -1:
+                    self.node.get_logger().info(
+                        'Running until oracle terminates')
+                else:
+                    self.node.get_logger().info(
+                        f'Running for {episode.iterations} iteration(s)')
+
             goal_msg = ExecuteXMLTestSuite.Goal()
             goal_msg.path = episode.path
             goal_msg.parameters = [
                 map_param_to_msg(parameter) for parameter
                 in episode.parameters]
+            if episode.initialize_service:
+                goal_msg.initializer = episode.initialize_service
+            if episode.iterate_service:
+                goal_msg.iterator = episode.iterate_service
+            if episode.iterations:
+                goal_msg.iterations = int(episode.iterations)
             self.action_client.wait_for_server()
             response = self.action_client.send_goal(goal_msg)
             self.node.get_logger().info(

@@ -1,0 +1,7 @@
+<Session xmlns="https://www.aist.go.jp/rospit-session" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Episode test_definition_path="src/rospit2/examples/move_turtlesim_requiring_parameters.xml" 
+           name="turtlesim_model"
+           initialize_service="/initialize_turtlesim"
+           iterate_service="/iterate_turtlesim"
+           iterations="4" />
+</Session>

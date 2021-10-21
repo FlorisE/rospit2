@@ -20,6 +20,8 @@
 
 """Script that launches PIT nodes and services."""
 
+import copy
+
 import rclpy
 from rclpy.action import ActionServer
 from rclpy.executors import MultiThreadedExecutor
@@ -33,6 +35,7 @@ from rospit_msgs.msg import Condition as ConditionMessage, \
                             TestCase as TestCaseMessage, \
                             TestCaseReport as TestCaseReportMessage, \
                             TestSuiteReport as TestSuiteReportMessage
+from rospit_msgs.srv import MBTIterator
 
 from .ros_parameters import map_msg_to_param
 
@@ -92,11 +95,8 @@ class ROSTestRunnerNode(Node):
         self.active_goal_handle = None
 
     def execute_xml_test_suite(self, goal_handle):
-        """
-        Execute a test suite specified in an XML file.
-
-        Request should be a string specifying the path to the test to run.
-        """
+        """Execute a test suite specified in an XML file."""
+        iterator = goal_handle.request.iterator
         self.active_goal_handle = goal_handle
         self.get_logger().info('Executing test suite')
         result = ExecuteXMLTestSuite.Result()
@@ -114,6 +114,41 @@ class ROSTestRunnerNode(Node):
             result.error = 'Failed to parse the file specified at path'
             return result
 
+        if iterator:
+            iterator_client = self.create_client(MBTIterator, iterator)
+
+        if goal_handle.request.iterations != 0:
+            iterate = True
+            i = 0
+            while iterate:
+                parameters = [copy.deepcopy(parameter) for parameter
+                              in goal_handle.request.parameters]
+                if iterator:
+                    request = MBTIterator.Request()
+                    request.iteration = i
+                    response = iterator_client.call(request)
+                    for p1 in response.parameters:
+                        for p in parameters:
+                            if p.node_name == p1.node_name and \
+                               p.parameter_name == p1.parameter_name:
+                                p.parameter_value = p1.parameter_value
+                                break
+                        parameters.append(p1)
+                self.execute_test_suite(
+                    parser, parameters, result)
+                if goal_handle.request.iterations == -1:
+                    continue
+                i += 1
+                iterate = i < goal_handle.request.iterations
+            goal_handle.succeed()
+        else:
+            self.execute_test_suite(
+                parser, goal_handle.request.parameters, result)
+            goal_handle.succeed()
+
+        return result
+
+    def execute_test_suite(self, parser, parameters, result):
         test_suite = parser.parse()
 
         if test_suite is None:
@@ -121,15 +156,13 @@ class ROSTestRunnerNode(Node):
             result.error = 'No test suite loaded, call execute_xml_test_suite'
             return result
 
-        parameters = [
+        parameter_msgs = [
             map_msg_to_param(param_msg) for param_msg
-            in goal_handle.request.parameters]
-        report = test_suite.run(self.get_logger(), parameters)
+            in parameters]
+        report = test_suite.run(self.get_logger(), parameter_msgs)
         mapped_report = map_test_suite_report(report)
-        goal_handle.succeed()
         result.success = True
         result.report = mapped_report
-        return result
 
     def add_invariant_evaluation(self, evaluation):
         """Store the invariant evaluation."""

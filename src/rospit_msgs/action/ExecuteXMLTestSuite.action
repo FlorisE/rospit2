@@ -1,5 +1,8 @@
 string path
 rospit_msgs/Parameter[] parameters
+string initializer
+string iterator
+int64 iterations
 ---
 bool success
 rospit_msgs/TestSuiteReport report
