@@ -1,3 +1,25 @@
+# Copyright (c) 2020 AIST.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+"""Example of Model-Based Testing using turtlesim."""
+
 import rclpy
 from rclpy.node import Node
 from rospit_msgs.srv import MBTInitializer, MBTIterator
@@ -5,6 +27,7 @@ from rospit_msgs.msg import Parameter
 
 
 def make_parameter(parameter_name, parameter_value, store_as):
+    """Make a single parameter."""
     p = Parameter()
     p.node_name = 'test_runner'
     p.parameter_name = parameter_name
@@ -18,6 +41,7 @@ def make_parameters(llx_pre, ulx_pre, lly_pre, uly_pre,
                     llx_inv, ulx_inv, lly_inv, uly_inv,
                     lin_x, lin_y, lin_z,
                     ang_x, ang_y, ang_z):
+    """Make parameters for one run."""
     llx_pre = make_parameter('lower_limit_x_pre', str(llx_pre), 'llx_pre')
     ulx_pre = make_parameter('upper_limit_x_pre', str(ulx_pre), 'ulx_pre')
     lly_pre = make_parameter('lower_limit_y_pre', str(lly_pre), 'lly_pre')
@@ -53,8 +77,10 @@ TEST_VALUES = [[5.54, 5.55, 5.54, 5.55, 7.53, 7.57, 5.54, 5.55, 5.54, 7.57, 5.54
 
 
 class TurtlesimMBTServices(Node):
+    """Services for turtlesim MBT."""
 
     def __init__(self):
+        """Initialize."""
         super().__init__('turtlesim_mbt_services')
         self.initialize_srv = self.create_service(MBTInitializer,
                                                   'initialize_turtlesim',
@@ -64,9 +90,11 @@ class TurtlesimMBTServices(Node):
                                                self.iterate_callback)
 
     def initialize_callback(self, request, response):
+        """Callback for initializing the oracle."""
         return response
 
     def iterate_callback(self, request, response):
+        """Callback for iterating the oracle."""
         iteration = request.iteration
         if iteration > 3:
             response.exhausted = True
@@ -81,6 +109,7 @@ class TurtlesimMBTServices(Node):
 
 
 def main(args=None):
+    """Start turtlesim MBT services."""
     rclpy.init(args=args)
     node = TurtlesimMBTServices()
     rclpy.spin(node)
