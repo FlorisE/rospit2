@@ -146,6 +146,7 @@ class Step(object):
     def __init__(self, save_result=False):
         """Initialize."""
         self.save_result = save_result
+        self.step_type = self.__class__.__name__
 
     def execute(self):
         """Execute the step."""

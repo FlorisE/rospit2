@@ -611,6 +611,7 @@ class Sleep(Step):
         """Initialize."""
         super().__init__()
         self.node = node
+        self.unit = unit
         if unit == 'second' or unit == 'seconds':
             self.time = time
         elif unit == 'minute' or unit == 'minutes':
